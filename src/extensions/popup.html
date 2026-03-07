@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 280px;
+      background: #0f0f13;
+      color: #e2e2e2;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      padding: 16px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #222;
+    }
+
+    .logo { font-size: 20px; }
+
+    .title { font-weight: bold; font-size: 15px; color: #fff; }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+
+    .status.connected    { background: #0d2b1a; color: #4ade80; }
+    .status.disconnected { background: #2b0d0d; color: #f87171; }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+
+    .status.connected    .dot { background: #4ade80; }
+    .status.disconnected .dot { background: #f87171; }
+
+    .section {
+      margin-bottom: 12px;
+    }
+
+    .label {
+      color: #666;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .value {
+      color: #a5b4fc;
+      word-break: break-all;
+      font-size: 12px;
+    }
+
+    .instructions {
+      background: #16161f;
+      border: 1px solid #222;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 11px;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .instructions code {
+      color: #a5b4fc;
+      background: #0f0f18;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .footer {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #222;
+      color: #444;
+      font-size: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="logo">⬡</span>
+    <span class="title">Agentic Wallet</span>
+  </div>
+
+  <div id="status" class="status disconnected">
+    <div class="dot"></div>
+    <span id="statusText">Daemon not running</span>
+  </div>
+
+  <div id="accountSection" class="section" style="display:none">
+    <div class="label">Active Account</div>
+    <div id="accountAddress" class="value">—</div>
+  </div>
+
+  <div id="instructions" class="instructions">
+    Start the wallet daemon to connect:<br><br>
+    <code>wallet daemon</code><br><br>
+    Then refresh this page.
+  </div>
+
+  <div class="footer">ws://localhost:3000</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
