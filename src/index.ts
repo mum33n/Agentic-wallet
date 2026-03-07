@@ -1,81 +1,67 @@
 #!/usr/bin/env node
-/**
- * src/index.ts
- *
- * App entry point. Two modes:
- *
- *   wallet             → interactive REPL (no vault required to start)
- *   wallet daemon      → start WebSocket + WalletConnect, then drop into REPL
- *
- * Vault unlock happens inside the REPL via `unlock` command.
- * The daemon reads WALLET_PASSWORD from .env to unlock automatically.
- */
-
-// import 'dotenv/config'
+// import "dotenv/config";
+import * as readline from "readline";
 import chalk from "chalk";
 import { vaultExists, loadVault } from "./vault/keystore";
 import { loadConfig } from "./vault/config";
-import { deriveAccount } from "./vault/accounts";
 import { mnemonicToSeed } from "./vault/mnemonic";
+import { deriveAccount } from "./vault/accounts";
 import { WalletVault } from "./vault";
 import { startWebSocketServer } from "./bridge/websocket";
 import { initWalletConnect } from "./bridge/walletConnect";
 import { startRepl } from "./cli/repl";
+import { setReadline, askPassword } from "./cli/prompts";
+import { cmdInit } from "./cli/commands";
 import type { HandlerOptions } from "./bridge/handler";
-import { askPassword, setReadline } from "./cli/prompts";
 
 const WS_PORT = parseInt(process.env.WS_PORT ?? "3000");
-const WC_PROJECT_ID =
-  process.env.WALLETCONNECT_PROJECT_ID ?? "a5309d58dcac1d40ae335dc00d87ee09";
+const WC_PROJECT_ID = process.env.WALLETCONNECT_PROJECT_ID ?? "";
 export let WALLET_PASS = process.env.WALLET_PASSWORD ?? "";
-
 const args = process.argv.slice(2);
-const isDaemon = args.includes("daemon");
+
+// ── Create ONE readline for the entire process lifetime ───────────────────────
+// Never close it. askPassword pauses/resumes it. The REPL reuses it.
+// Creating a second readline, or closing and reopening, corrupts stdin echo.
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  prompt: chalk.green("wallet") + chalk.dim(" › "),
+});
+setReadline(rl);
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
   console.log(chalk.bold("\n⬡  Agentic Wallet\n"));
 
-  if (isDaemon) {
-    await startDaemon();
-  } else {
-    startRepl();
+  if (args[0] === "init") {
+    await cmdInit();
+    process.exit(0);
   }
+
+  await startDaemon();
 }
 
-// ── Daemon mode ───────────────────────────────────────────────────────────────
-
 async function startDaemon() {
-  // ── 1. Require vault ────────────────────────────────────────────────────────
+  // ── 1. Init vault if missing ─────────────────────────────────────────────────
   if (!vaultExists()) {
-    console.log(chalk.yellow("No vault found. Run `wallet init` first.\n"));
-    startRepl();
-    return;
+    console.log(chalk.yellow("No vault found. Creating one now.\n"));
+    await cmdInit();
+    if (!vaultExists()) process.exit(0);
   }
 
-  // ── 2. Unlock vault ─────────────────────────────────────────────────────────
-  // Use env var for fully autonomous mode, otherwise prompt
-  // let password;
-
+  // ── 2. Unlock vault ──────────────────────────────────────────────────────────
+  // askPassword pauses rl, takes raw mode, then resumes rl — no new readline needed
   if (!WALLET_PASS) {
-    // Need readline for askPassword — create a temporary one
-    const readline = await import("readline");
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      prompt: chalk.green("wallet") + chalk.dim(" › "),
-    });
-    setReadline(rl);
-    // rl.close();
+    WALLET_PASS = await askPassword("Vault password: ");
   }
-  WALLET_PASS = await askPassword("Vault password: ");
 
-  let vault: VaultData;
+  let vaultData: { mnemonic: string; createdAt: string; version: number };
   try {
-    vault = await loadVault(WALLET_PASS);
+    vaultData = await loadVault(WALLET_PASS);
   } catch {
-    console.log(chalk.red("Wrong password."));
+    console.log(chalk.red("\nWrong password.\n"));
     process.exit(1);
   }
 
@@ -84,91 +70,67 @@ async function startDaemon() {
   const entry = config.accountStore.accounts.find(
     (a) => a.index === config.accountStore.activeIndex,
   );
-
   if (!entry) {
-    console.log(chalk.red("No active account found in config."));
+    console.log(chalk.red("No active account. Run: accounts new"));
     process.exit(1);
   }
 
-  const seed = await mnemonicToSeed(vault.mnemonic);
+  const seed = await mnemonicToSeed(vaultData.mnemonic);
   const account = deriveAccount(seed, entry.index, entry.name);
 
-  console.log(chalk.green("✓ Vault unlocked"));
+  console.log(chalk.green("\n✓ Vault unlocked"));
   console.log(chalk.dim(`  Account: ${account.name} (${account.publicKey})`));
-  console.log(chalk.dim(`  Network: ${config.cluster}\n`));
+  console.log(chalk.dim(`  Network: ${config.cluster}`));
 
-  // ── 4. Build handler options ─────────────────────────────────────────────────
+  // ── 4. Build vault instance ──────────────────────────────────────────────────
   const walletVault = new WalletVault();
   await walletVault.unlock(WALLET_PASS);
+  const handlerOptions: HandlerOptions = { vault: walletVault };
 
-  const handlerOptions: HandlerOptions = {
-    vault: walletVault,
-  };
-
-  // ── 5. Start WebSocket server ────────────────────────────────────────────────
+  // ── 5. WebSocket server ──────────────────────────────────────────────────────
   startWebSocketServer({ port: WS_PORT, options: handlerOptions });
-  console.log(
-    chalk.green(`✓ WebSocket server started on ws://localhost:${WS_PORT}`),
-  );
-  console.log(chalk.dim(`  Agents: ws://localhost:${WS_PORT}/ws/agent`));
-  console.log(chalk.dim(`  dApps:  ws://localhost:${WS_PORT}/ws/dapp\n`));
+  console.log(chalk.green(`\n✓ WebSocket server on ws://localhost:${WS_PORT}`));
+  console.log(chalk.dim(`  Agents → /ws/agent`));
+  console.log(chalk.dim(`  dApps  → /ws/dapp`));
 
-  // ── 6. Start WalletConnect ───────────────────────────────────────────────────
+  // ── 6. WalletConnect ─────────────────────────────────────────────────────────
   if (WC_PROJECT_ID) {
     await initWalletConnect({
       projectId: WC_PROJECT_ID,
       handlerOptions,
       onSessionProposal: async (meta) => {
-        // In daemon mode — auto-approve all session proposals
-        // (agent is autonomous — it decides per-transaction, not per-connection)
-        console.log(
-          chalk.cyan(
-            `[WC] Auto-approved connection from: ${meta.name} (${meta.url})`,
-          ),
-        );
+        console.log(chalk.cyan(`\n[WC] Connected: ${meta.name} (${meta.url})`));
         return true;
       },
     });
     console.log(chalk.green("✓ WalletConnect ready"));
-    console.log(chalk.dim("  Use `connect wc:..." + "` to pair with a dApp\n"));
   } else {
     console.log(
-      chalk.yellow(
-        "[WC] WALLETCONNECT_PROJECT_ID not set — WalletConnect disabled",
-      ),
-    );
-    console.log(
-      chalk.dim("     Get a free ID at https://cloud.walletconnect.com\n"),
+      chalk.yellow("\n[WC] Disabled — set WALLETCONNECT_PROJECT_ID to enable"),
     );
   }
 
-  // ── 7. Drop into REPL ────────────────────────────────────────────────────────
-  // Daemon stays running via the REPL and WebSocket server
-  startRepl();
+  // ── 7. REPL — pass the existing readline, do not create a new one ────────────
+  console.log(chalk.dim("\n─────────────────────────────────────"));
+  console.log(chalk.dim('  Type "help" for commands.'));
+  console.log(chalk.dim("─────────────────────────────────────\n"));
+
+  startRepl(rl);
 }
 
 // ── Cleanup ───────────────────────────────────────────────────────────────────
 
 process.on("SIGINT", () => {
-  console.log(chalk.dim("\n\nShutting down..."));
+  console.log(chalk.dim("\nShutting down.\n"));
   process.exit(0);
 });
 
 process.on("uncaughtException", (err) => {
-  console.error(chalk.red(`Uncaught error: ${err.message}`));
+  console.error(chalk.red(`\nError: ${err.message}\n`));
   process.exit(1);
 });
-
-// ── Boot ──────────────────────────────────────────────────────────────────────
 
 main().catch((err) => {
   console.error(chalk.red(`Fatal: ${err.message}`));
   process.exit(1);
 });
-
-// ── Internal type (avoid circular import) ────────────────────────────────────
-interface VaultData {
-  mnemonic: string;
-  createdAt: string;
-  version: number;
-}

@@ -3,6 +3,7 @@ import chalk from "chalk";
 import {
   cmdInit,
   cmdUnlock,
+  cmdLock,
   cmdAccounts,
   cmdNewAccount,
   cmdUseAccount,
@@ -10,41 +11,48 @@ import {
   cmdConnect,
   cmdSessions,
   cmdDisconnect,
-  isUnlocked,
+  cmdSetCluster,
 } from "./commands";
-import inquirer from "inquirer";
 import { setReadline } from "./prompts";
 
 const HELP = `
-${chalk.bold("Agentic Wallet — Commands")}
+${chalk.bold("Commands")}
 
-  ${chalk.cyan("wallet init")}                     Create a new wallet
-  ${chalk.cyan("wallet unlock")}                   Unlock vault for session
-  ${chalk.cyan("wallet accounts")}                 List all accounts
-  ${chalk.cyan("wallet accounts new <name>")}      Create a new account
-  ${chalk.cyan("wallet accounts use <name>")}      Switch active account
-  ${chalk.cyan("wallet airdrop [sol]")}            Request devnet airdrop
-  ${chalk.cyan("wallet connect <wc:uri>")}         Connect to a dApp via WalletConnect
-  ${chalk.cyan("wallet sessions")}                 List connected dApps
-  ${chalk.cyan("wallet disconnect <dapp>")}        Disconnect from a dApp
-  ${chalk.cyan("wallet config rpc <cluster>")}     Set cluster (devnet/mainnet-beta)
-  ${chalk.cyan("wallet help")}                     Show this message
-  ${chalk.cyan("exit")}                            Quit
+  ${chalk.cyan("init")}                        Create a new wallet
+  ${chalk.cyan("unlock")}                      Unlock vault
+  ${chalk.cyan("lock")}                        Lock wallet
+  ${chalk.cyan("accounts")}                    List accounts
+  ${chalk.cyan("accounts new <name>")}         Create account
+  ${chalk.cyan("accounts use <name|index>")}   Switch account
+  ${chalk.cyan("airdrop [sol]")}               Request devnet airdrop
+  ${chalk.cyan("connect <wc:uri>")}            Connect dApp via WalletConnect
+  ${chalk.cyan("sessions")}                    List connected dApps
+  ${chalk.cyan("disconnect <dapp>")}           Disconnect dApp
+  ${chalk.cyan("cluster <name>")}              Set cluster (devnet/mainnet-beta)
+  ${chalk.cyan("help")}                        Show this message
+  ${chalk.cyan("exit")}                        Quit
 `;
 
-export function startRepl(): void {
-  console.log(chalk.bold("\n⬡  Agentic Wallet"));
-  console.log(chalk.dim('   Type "help" for commands\n'));
+/**
+ * Start the interactive REPL.
+ *
+ * Accepts an existing readline interface so the caller can reuse
+ * the one created at process start — never create a second readline.
+ * Creating or closing a readline mid-process corrupts stdin echo state.
+ */
+export function startRepl(existingRl?: readline.Interface): void {
+  const rl =
+    existingRl ??
+    readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      prompt: chalk.green("wallet") + chalk.dim(" › "),
+    });
 
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: chalk.green("wallet") + chalk.dim(" › "),
-  });
-
+  // Keep prompt module in sync with whichever rl we're using
   setReadline(rl);
 
-  rl.prompt();
+  rl.setPrompt(chalk.green("wallet") + chalk.dim(" › "));
 
   rl.on("line", async (line) => {
     const parts = line.trim().split(/\s+/);
@@ -56,7 +64,6 @@ export function startRepl(): void {
           break;
         case "help":
           console.log(HELP);
-          //   rl.prompt();
           break;
         case "exit":
         case "quit":
@@ -67,6 +74,9 @@ export function startRepl(): void {
           break;
         case "unlock":
           await cmdUnlock();
+          break;
+        case "lock":
+          cmdLock();
           break;
         case "airdrop":
           await cmdAirdrop(Number(parts[1]) || 1);
@@ -80,6 +90,9 @@ export function startRepl(): void {
         case "disconnect":
           await cmdDisconnect(parts.slice(1).join(" "));
           break;
+        case "cluster":
+          cmdSetCluster(parts[1]);
+          break;
 
         case "accounts":
           if (parts[1] === "new") await cmdNewAccount(parts.slice(2).join(" "));
@@ -87,23 +100,18 @@ export function startRepl(): void {
           else await cmdAccounts();
           break;
 
-        // case 'config':
-        //   if (parts[1] === 'rpc') await cmdSetRpc(parts[2])
-        //   break
-
         default:
-          console.log(
-            chalk.red(`Unknown command: ${cmd}. Type "help" for usage.`),
-          );
+          console.log(chalk.red(`Unknown: ${cmd}. Type "help".`));
       }
     } catch (err: any) {
       console.error(chalk.red(`Error: ${err.message}`));
     }
 
     rl.prompt();
-    rl.on("close", () => {
-      console.log(chalk.dim("\nGoodbye."));
-      process.exit(0);
-    });
+  });
+
+  rl.on("close", () => {
+    console.log(chalk.dim("\nGoodbye."));
+    process.exit(0);
   });
 }
