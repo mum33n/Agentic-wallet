@@ -63,6 +63,8 @@ export function getSessionsPath(): string {
   return path.join(getWalletDir(), "sessions.json");
 }
 
+export const SESSIONS_FILE = getSessionsPath();
+
 export function ensureWalletDir(): void {
   const dir = getWalletDir();
   if (!fs.existsSync(dir)) {

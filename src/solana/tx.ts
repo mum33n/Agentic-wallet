@@ -153,13 +153,10 @@ export async function sendSignedTransaction(
  * Returns base58 encoded signature.
  */
 export function signOffchainMessage(
-  message: string | Uint8Array,
+  message: Uint8Array,
   keypair: AccountKeypair,
 ): string {
-  const messageBytes =
-    typeof message === "string" ? new TextEncoder().encode(message) : message;
-
-  const signature = nacl.sign.detached(messageBytes, keypair.secretKey);
+  const signature = nacl.sign.detached(message, keypair.secretKey);
   return bs58.encode(Buffer.from(signature));
 }
 
