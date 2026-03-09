@@ -199,6 +199,24 @@ Returns: signature, explorer URL, transaction details
 
 ---
 
+## Which integration to use
+
+```
+Are you writing TypeScript/JavaScript and can import from this project?
+  └─ Yes → AgentWallet SDK  (direct vault access, no daemon needed)
+
+Are you writing in another language, or a separate process that can't import?
+  └─ Yes → WebSocket protocol  (daemon must be running)
+
+Are you using Claude Desktop or Claude Code?
+  └─ Yes → MCP server  (tools handle everything, no raw protocol needed)
+
+Does your agent control a browser and needs to interact with a Solana dApp?
+  └─ Yes → Chrome Extension  (registers window.solana, daemon must be running)
+```
+
+---
+
 ## AgentWallet — Programmatic Client
 
 `AgentWallet` is a self-contained wallet client for autonomous agents. It connects **directly to the vault** (no daemon required) and can also be copied into any external project — as long as the vault files exist at `~/.wallet/`, it works identically.
@@ -279,6 +297,186 @@ Copy [src/client/wallet.ts](src/client/wallet.ts) and its dependencies into your
 - `~/.wallet/vault.enc` and `~/.wallet/config.json` present (created by `wallet init`)
 - `WALLET_PASSWORD` env var or pass `opts.password`
 - `@solana/web3.js` as a peer dependency
+
+---
+
+## WebSocket Protocol (raw, language-agnostic)
+
+Use this when your agent is in a separate process or written in a language that can't import the TypeScript SDK. The daemon must be running (`pnpm start`).
+
+### Endpoints
+
+| Endpoint | For |
+|----------|-----|
+| `ws://localhost:3000/ws/agent` | Agent programs — full access including keypair retrieval |
+| `ws://localhost:3000/ws/dapp` | Browser dApps — signing only, no keypair exposure |
+
+All messages are JSON. All responses echo the request `id`.
+
+### Step 1 — Register your agent
+
+Before signing anything, call `agent_connect` to find or create your named account. This does **not** switch the active account — it only registers the name and returns the public key.
+
+```json
+// Request
+{ "id": 1, "method": "agent_connect", "params": { "accountName": "My Bot" } }
+
+// Response
+{ "id": 1, "result": { "publicKey": "9xQeWvG...", "name": "My Bot", "index": 2 } }
+```
+
+If the account name doesn't exist yet it is created automatically and persisted.
+
+### Step 2 — Signing methods
+
+Signing methods always use the **active account** (set via `accounts use` in the CLI). They do not accept `accountName`. Every signing request runs pre-flight simulation first — if simulation fails the request is rejected before any signing happens.
+
+All signing methods require `topic` and `dapp` fields in addition to `id`, `method`, and `params`:
+
+```json
+{
+  "id": 2,
+  "method": "solana_signAndSendTransaction",
+  "topic": "my-agent-session",
+  "dapp": { "name": "My Bot", "url": "http://localhost" },
+  "params": {
+    "transaction": "<base64-encoded transaction bytes>"
+  }
+}
+```
+
+#### `solana_signTransaction`
+Sign without broadcasting. Returns signed transaction bytes as base64.
+```json
+// Request
+{
+  "id": 2, "method": "solana_signTransaction",
+  "topic": "session-id", "dapp": { "name": "Bot", "url": "http://localhost" },
+  "params": { "transaction": "<base64>" }
+}
+
+// Response
+{ "id": 2, "result": { "signedTransaction": "<base64>" } }
+```
+
+#### `solana_signAndSendTransaction`
+Sign and broadcast to Solana. Returns the transaction signature.
+```json
+// Request
+{
+  "id": 3, "method": "solana_signAndSendTransaction",
+  "topic": "session-id", "dapp": { "name": "Bot", "url": "http://localhost" },
+  "params": { "transaction": "<base64>" }
+}
+
+// Response
+{ "id": 3, "result": { "signature": "5KtPn1...", "confirmed": true } }
+```
+
+#### `solana_signAllTransactions`
+Sign a batch of transactions. All are simulated before any are signed.
+```json
+// Request
+{
+  "id": 4, "method": "solana_signAllTransactions",
+  "topic": "session-id", "dapp": { "name": "Bot", "url": "http://localhost" },
+  "params": { "transactions": ["<base64>", "<base64>"] }
+}
+
+// Response
+{ "id": 4, "result": { "signedTransactions": ["<base64>", "<base64>"] } }
+```
+
+#### `solana_signMessage`
+Sign an off-chain message for authentication. The message must be **base64-encoded** before sending (the handler also accepts base58, then falls back to raw UTF-8).
+```json
+// Request — encode your message as base64 first
+{
+  "id": 5, "method": "solana_signMessage",
+  "topic": "session-id", "dapp": { "name": "Bot", "url": "http://localhost" },
+  "params": { "message": "<base64-encoded message bytes>" }
+}
+
+// Response
+{ "id": 5, "result": { "signature": "<base58 signature>", "publicKey": "9xQeWvG..." } }
+```
+
+#### `solana_connect`
+Get the active account's public key.
+```json
+// Request
+{ "id": 6, "method": "solana_connect", "topic": "s", "dapp": { "name": "Bot", "url": "" }, "params": {} }
+
+// Response
+{ "id": 6, "result": { "publicKey": "9xQeWvG..." } }
+```
+
+### Read-only methods (no `topic`/`dapp` required)
+
+These methods do not sign anything and bypass the main handler.
+
+#### `solana_getBalance`
+```json
+// Request
+{ "id": 7, "method": "solana_getBalance", "params": { "publicKey": "9xQeWvG..." } }
+
+// Response
+{ "id": 7, "result": { "sol": 1.5, "lamports": 1500000000 } }
+```
+
+#### `solana_requestAirdrop`
+```json
+// Request
+{ "id": 8, "method": "solana_requestAirdrop", "params": { "publicKey": "9xQeWvG...", "sol": 1 } }
+
+// Response
+{ "id": 8, "result": { "signature": "5KtPn1..." } }
+```
+
+#### `solana_getTransactions`
+```json
+// Request
+{ "id": 9, "method": "solana_getTransactions", "params": { "publicKey": "9xQeWvG...", "limit": 5 } }
+
+// Response
+{ "id": 9, "result": { "signatures": ["5KtPn1...", "3xFqLm..."] } }
+```
+
+#### `solana_simulateTransaction`
+Simulates against the active account's public key.
+```json
+// Request
+{ "id": 10, "method": "solana_simulateTransaction", "params": { "transaction": "<base64>" } }
+
+// Response
+{ "id": 10, "result": { "success": true, "computeUnits": 450, "fee": 5000, "logs": [...] } }
+```
+
+#### `agent_getKeypair` (`/ws/agent` only)
+Returns the raw secret key for a named account. Only available on `/ws/agent`, blocked on `/ws/dapp`.
+```json
+// Request
+{ "id": 11, "method": "agent_getKeypair", "params": { "accountName": "My Bot" } }
+
+// Response
+{ "id": 11, "result": { "publicKey": "9xQeWvG...", "secretKey": "<base64>", "name": "My Bot", "index": 2 } }
+```
+
+### Error response format
+
+All errors follow the same shape:
+```json
+{ "id": 1, "error": { "code": 4001, "message": "agent_getKeypair only available on /ws/agent" } }
+```
+
+| Code | Meaning |
+|------|---------|
+| `4001` | Unauthorized (e.g. keypair access on wrong endpoint) |
+| `4100` | Unauthorized (WalletConnect standard) |
+| `4200` | Method not supported |
+| `4900` | Disconnected |
+| `4000` | General error (simulation failed, missing params, etc.) |
+| `-32700` | Parse error (malformed JSON) |
 
 ---
 
