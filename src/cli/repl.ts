@@ -107,7 +107,7 @@ export function startRepl(existingRl?: readline.Interface): void {
       console.error(chalk.red(`Error: ${err.message}`));
     }
 
-    rl.prompt();
+    // rl.prompt();
   });
 
   rl.on("close", () => {

@@ -1,5 +1,4 @@
 import chalk from "chalk";
-import inquirer from "inquirer";
 import { generateMnemonic, mnemonicToSeed } from "../vault/mnemonic";
 import { saveVault, loadVault, vaultExists } from "../vault/keystore";
 import { deriveAccount } from "../vault/accounts";
@@ -13,7 +12,7 @@ import {
 } from "../vault/config";
 import { getAllSessions } from "../bridge/session";
 import { pairWithDapp, disconnectDapp } from "../bridge/walletConnect";
-import { askPassword } from "./prompts";
+import { inkPassword, inkSelect, inkConfirm } from "./ink-prompts";
 import { WALLET_PASS } from "..";
 
 // ── In-memory session ─────────────────────────────────────────────────────────
@@ -51,17 +50,9 @@ export async function cmdInit(): Promise<void> {
     return;
   }
 
-  const { wordCount } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "wordCount",
-      message: "Mnemonic length:",
-      choices: [
-        { name: "12 words (standard)", value: 12 },
-        { name: "24 words (extra secure)", value: 24 },
-      ],
-      default: 12,
-    },
+  const wordCount = await inkSelect<12 | 24>("Mnemonic length:", [
+    { name: "12 words (standard)", value: 12 },
+    { name: "24 words (extra secure)", value: 24 },
   ]);
 
   const { mnemonic } = generateMnemonic(wordCount);
@@ -72,39 +63,15 @@ export async function cmdInit(): Promise<void> {
   console.log(chalk.yellow(mnemonic));
   console.log();
 
-  const { confirmed } = await inquirer.prompt([
-    {
-      type: "confirm",
-      name: "confirmed",
-      message: "I have written down my seed phrase",
-      default: false,
-    },
-  ]);
+  const confirmed = await inkConfirm("I have written down my seed phrase", false);
   if (!confirmed) {
     console.log(chalk.red("Aborted."));
     return;
   }
 
-  //   const  password  = await inquirer.prompt([
-  //     {
-  //       type: "password",
-  //       name: "password",
-  //       message: "Set vault password:",
-  //       mask: "*",
-  //     },
-  //   ]);
+  const password = await inkPassword("Set vault password:");
 
-  const password = await askPassword("Set vault password:");
-  //   const { confirm } = await inquirer.prompt([
-  //     {
-  //       type: "password",
-  //       name: "confirm",
-  //       message: "Confirm password:",
-  //       mask: "*",
-  //     },
-  //   ]);
-
-  const confirm = await askPassword("Confirm password:");
+  const confirm = await inkPassword("Confirm password:");
 
   if (password !== confirm) {
     console.log(chalk.red("Passwords do not match."));
@@ -147,7 +114,7 @@ export async function cmdUnlock(): Promise<void> {
     return;
   }
 
-  const password = await askPassword("Vault password: ");
+  const password = await inkPassword("Vault password:");
 
   try {
     const vault = await loadVault(password);

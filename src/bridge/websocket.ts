@@ -1,10 +1,10 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { handleRequest, WalletRequest, HandlerOptions } from "./handler";
 import { deriveAccount } from "../vault/accounts";
-import chalk from "chalk";
 import { getBalance, getConnection, requestAirdrop } from "../solana/rpc";
 import { simulateTransaction } from "../solana/simulate";
 import { loadConfig, mnemonicToSeed, updateAccountStore } from "../vault";
+import { addLog } from "../cli/ui";
 
 export interface WSServerOptions {
   port: number;
@@ -15,13 +15,9 @@ export function startWebSocketServer(opts: WSServerOptions): WebSocketServer {
   const wss = new WebSocketServer({ port: opts.port });
 
   wss.on("listening", () => {
-    console.log(
-      chalk.green(
-        `[WS] WebSocket server listening on ws://localhost:${opts.port}`,
-      ),
-    );
-    console.log(chalk.dim(`  /ws/agent  → agent programs`));
-    console.log(chalk.dim(`  /ws/dapp   → browser companion (window.solana)`));
+    addLog("ws", `listening on ws://localhost:${opts.port}`, "success");
+    addLog("ws", "/ws/agent → agent programs", "info");
+    addLog("ws", "/ws/dapp  → browser companion (window.solana)", "info");
   });
 
   wss.on("connection", (ws: WebSocket, req) => {
@@ -29,7 +25,7 @@ export function startWebSocketServer(opts: WSServerOptions): WebSocketServer {
     const isAgent = path.includes("/ws/agent");
     const isDapp = path.includes("/ws/dapp");
 
-    console.log(chalk.cyan(`[WS] New connection on ${path}`));
+    addLog("ws", `new connection on ${path}`, "info");
 
     ws.on("message", async (raw) => {
       let msg: any;
@@ -43,9 +39,7 @@ export function startWebSocketServer(opts: WSServerOptions): WebSocketServer {
         return;
       }
 
-      console.log(
-        chalk.yellow(`[WS] ${msg.method} from ${isAgent ? "agent" : "dapp"}`),
-      );
+      addLog("ws", `${msg.method} from ${isAgent ? "agent" : "dapp"}`, "info");
 
       // ── agent_connect — find or create account by name ─────────────────────
       if (msg.method === "agent_connect") {
@@ -83,17 +77,9 @@ export function startWebSocketServer(opts: WSServerOptions): WebSocketServer {
             // Reload vault so new keypair is available
             await vault.reload();
 
-            console.log(
-              chalk.green(
-                `[WS] Created account: ${accountName} (${keypair.publicKey})`,
-              ),
-            );
+            addLog("ws", `created account: ${accountName} (${keypair.publicKey})`, "success");
           } else {
-            console.log(
-              chalk.dim(
-                `[WS] Found account: ${accountName} (${account.publicKey})`,
-              ),
-            );
+            addLog("ws", `found account: ${accountName} (${account.publicKey})`, "info");
           }
 
           ws.send(
@@ -161,11 +147,7 @@ export function startWebSocketServer(opts: WSServerOptions): WebSocketServer {
             });
 
             await vault.reload();
-            console.log(
-              chalk.green(
-                `[WS] Created account: ${accountName} (${keypair.publicKey})`,
-              ),
-            );
+            addLog("ws", `created account: ${accountName} (${keypair.publicKey})`, "success");
           }
 
           // Return keypair — secretKey as base64
@@ -280,22 +262,18 @@ export function startWebSocketServer(opts: WSServerOptions): WebSocketServer {
       ws.send(JSON.stringify(response));
 
       if (response.error) {
-        console.log(
-          chalk.red(
-            `[WS] Request handled with error: ${response.error.message}`,
-          ),
-        );
+        addLog("ws", `error: ${response.error.message}`, "error");
       } else {
-        console.log(chalk.green(`[WS] Request handled successfully`));
+        addLog("ws", `${request.method} handled`, "success");
       }
     });
 
     ws.on("close", () => {
-      console.log(chalk.dim(`[WS] Connection closed on ${path}`));
+      addLog("ws", `connection closed on ${path}`, "info");
     });
 
     ws.on("error", (err) => {
-      console.error(chalk.red(`[WS] Error: ${err.message}`));
+      addLog("ws", `error: ${err.message}`, "error");
     });
   });
 

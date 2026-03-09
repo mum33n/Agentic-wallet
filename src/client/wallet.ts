@@ -36,6 +36,7 @@ import {
   SignedTransaction,
   SendResult,
 } from "../solana/tx";
+import WebSocket from "ws";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -315,7 +316,6 @@ export class AgentWallet {
     daemonUrl: string,
   ): Promise<AccountKeypair & { index: number }> {
     return new Promise((resolve, reject) => {
-      const WebSocket = require("ws");
       const ws = new WebSocket(daemonUrl);
       const tid = setTimeout(() => {
         ws.terminate();

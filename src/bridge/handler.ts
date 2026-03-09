@@ -23,6 +23,7 @@ import {
   signOffchainMessage,
 } from "../solana/tx";
 import { WalletVault } from "../vault";
+import { addLog } from "../cli/ui";
 import bs58 from "bs58";
 
 export interface DappMetadata {
@@ -290,7 +291,7 @@ export class WalletRequestHandler {
 
   private log(request: WalletRequest, note: string): void {
     const source = request.agentId ?? request.dapp?.name ?? "unknown";
-    console.log(`[handler] ${request.method} | ${source} | ${note}`);
+    addLog("handler", `${request.method} | ${source} | ${note}`, "info");
   }
 }
 

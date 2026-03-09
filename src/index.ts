@@ -7,11 +7,12 @@ import { deriveAccount } from "./vault/accounts";
 import { WalletVault } from "./vault";
 import { startWebSocketServer } from "./bridge/websocket";
 import { initWalletConnect } from "./bridge/walletConnect";
-import { startRepl } from "./cli/repl";
-import { setReadline, askPassword } from "./cli/prompts";
+// import { startRepl } from "./cli/repl";
+import { inkPassword } from "./cli/ink-prompts";
 import { cmdInit } from "./cli/commands";
 import type { HandlerOptions } from "./bridge/handler";
 import { config } from "dotenv";
+import { startInkUI } from "./cli/ui";
 
 config();
 
@@ -24,19 +25,9 @@ const args = process.argv.slice(2);
 // Never close it. askPassword pauses/resumes it. The REPL reuses it.
 // Creating a second readline, or closing and reopening, corrupts stdin echo.
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  prompt: chalk.green("wallet") + chalk.dim(" › "),
-});
-setReadline(rl);
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log(chalk.bold("\n⬡  Agentic Wallet\n"));
-  console.log("here");
-
   if (args[0] === "init") {
     await cmdInit();
     process.exit(0);
@@ -56,7 +47,7 @@ async function startDaemon() {
   // ── 2. Unlock vault ──────────────────────────────────────────────────────────
   // askPassword pauses rl, takes raw mode, then resumes rl — no new readline needed
   if (!WALLET_PASS) {
-    WALLET_PASS = await askPassword("Vault password: ");
+    WALLET_PASS = await inkPassword("Vault password:");
   }
 
   let vaultData: { mnemonic: string; createdAt: string; version: number };
@@ -117,7 +108,11 @@ async function startDaemon() {
   console.log(chalk.dim('  Type "help" for commands.'));
   console.log(chalk.dim("─────────────────────────────────────\n"));
 
-  startRepl(rl);
+  startInkUI(
+    walletVault,
+    () => [],
+    () => {},
+  );
 }
 
 // ── Cleanup ───────────────────────────────────────────────────────────────────
