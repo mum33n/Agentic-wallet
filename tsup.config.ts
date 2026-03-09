@@ -1,11 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: {
-    index: "src/index.ts",
-    "mcp-server": "src/client/mcp.ts",
-    demo: "src/agents/demo.ts",
-  },
+  entry: ["src/**/*.ts", "src/**/*.tsx"],
   format: ["esm"], // output ESM — required by ink
   target: "node18",
   platform: "node",
@@ -39,4 +35,5 @@ export default defineConfig({
     options.jsxFactory = "React.createElement";
     options.jsxFragment = "React.Fragment";
   },
+  outExtension: () => ({ js: ".js" }),
 });

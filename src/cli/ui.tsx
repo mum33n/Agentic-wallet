@@ -34,6 +34,7 @@ import {
   cmdSessions,
   cmdDisconnect,
   cmdSetCluster,
+  cmdSend,
 } from "./commands";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -460,6 +461,28 @@ function Dashboard({ vault, agentStatus, onExit }: DashboardProps) {
     }
   };
 
+  // ── Inline send ─────────────────────────────────────────────────────────────
+
+  const handleSend = async (to: string, amount: number) => {
+    if (!to || !amount) {
+      addLog("wallet", "Usage: send <address> <sol>", "warn");
+      return;
+    }
+
+    const confirmed = await requestPrompt<boolean>({
+      type: "confirm",
+      message: `Send ${amount} SOL to ${to.slice(0, 8)}...${to.slice(-4)}?`,
+      defaultYes: false,
+    });
+
+    if (!confirmed) {
+      addLog("wallet", "Cancelled.", "warn");
+      return;
+    }
+
+    await withCapture(() => cmdSend(to, amount, vault));
+  };
+
   // ── Command executor ────────────────────────────────────────────────────────
 
   const executeCommand = async (line: string) => {
@@ -477,7 +500,7 @@ function Dashboard({ vault, agentStatus, onExit }: DashboardProps) {
         case "help":
           addLog(
             "wallet",
-            "init  unlock  lock  accounts [new|use]  airdrop [sol]  connect <wc:uri>  sessions  disconnect <dapp>  cluster <name>  exit",
+            "init  unlock  lock  accounts [new|use]  send <addr> <sol>  airdrop [sol]  connect <wc:uri>  sessions  disconnect <dapp>  cluster <name>  exit",
             "info",
           );
           break;
@@ -498,6 +521,10 @@ function Dashboard({ vault, agentStatus, onExit }: DashboardProps) {
 
         case "lock":
           await withCapture(async () => cmdLock());
+          break;
+
+        case "send":
+          await handleSend(parts[1], Number(parts[2]));
           break;
 
         case "airdrop":

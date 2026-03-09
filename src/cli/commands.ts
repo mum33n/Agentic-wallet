@@ -2,7 +2,8 @@ import chalk from "chalk";
 import { generateMnemonic, mnemonicToSeed } from "../vault/mnemonic";
 import { saveVault, loadVault, vaultExists } from "../vault/keystore";
 import { deriveAccount } from "../vault/accounts";
-import { getBalance, requestAirdrop } from "../solana/rpc";
+import { getBalance, requestAirdrop, getConnection } from "../solana/rpc";
+import { WalletVault } from "../vault";
 import {
   updateCluster,
   loadConfig,
@@ -274,6 +275,55 @@ export async function cmdDisconnect(dappName: string): Promise<void> {
   }
   await disconnectDapp(session.topic);
   console.log(chalk.green(`✓ Disconnected from ${session.dappName}`));
+}
+
+// ── send ──────────────────────────────────────────────────────────────────────
+
+export async function cmdSend(
+  to: string,
+  sol: number,
+  vault: WalletVault,
+): Promise<void> {
+  const {
+    PublicKey,
+    SystemProgram,
+    Transaction,
+    LAMPORTS_PER_SOL,
+  } = await import("@solana/web3.js");
+
+  const keypair = vault.getActiveKeypair();
+  const { Keypair } = await import("@solana/web3.js");
+  const solanaKeypair = Keypair.fromSecretKey(keypair.secretKey);
+
+  const connection = getConnection();
+  const { blockhash, lastValidBlockHeight } =
+    await connection.getLatestBlockhash("confirmed");
+
+  const tx = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: solanaKeypair.publicKey,
+      toPubkey: new PublicKey(to),
+      lamports: Math.round(sol * LAMPORTS_PER_SOL),
+    }),
+  );
+
+  tx.recentBlockhash = blockhash;
+  tx.feePayer = solanaKeypair.publicKey;
+  tx.sign(solanaKeypair);
+
+  const raw = tx.serialize();
+  const sig = await connection.sendRawTransaction(raw, {
+    skipPreflight: false,
+    preflightCommitment: "confirmed",
+  });
+
+  await connection.confirmTransaction(
+    { signature: sig, blockhash, lastValidBlockHeight },
+    "confirmed",
+  );
+
+  console.log(chalk.green(`✓ Sent ${sol} SOL to ${to}`));
+  console.log(chalk.dim(`  tx: ${sig}`));
 }
 
 // ── config cluster ────────────────────────────────────────────────────────────
