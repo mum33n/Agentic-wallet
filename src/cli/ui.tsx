@@ -233,13 +233,7 @@ function PromptRow({
 
 // ── Command Bar ────────────────────────────────────────────────────────────────
 
-function CommandBar({
-  buffer,
-  running,
-}: {
-  buffer: string;
-  running: boolean;
-}) {
+function CommandBar({ buffer, running }: { buffer: string; running: boolean }) {
   return (
     <Box>
       <Text color="green" bold>
@@ -287,24 +281,27 @@ function Dashboard({ vault, agentStatus, onExit }: DashboardProps) {
 
   // Load data on mount
   useEffect(() => {
-    try {
-      const keypairs = vault.getAllKeypairs();
-      setAccounts(keypairs);
-      setCluster(getCluster());
-      setSessions(getAllSessions());
+    const interval = setInterval(() => {
+      try {
+        const keypairs = vault.getAllKeypairs();
+        setAccounts(keypairs);
+        setCluster(getCluster());
+        setSessions(getAllSessions());
 
-      keypairs.forEach(async (kp) => {
-        try {
-          const { sol } = await getBalance(kp.publicKey);
-          setBalances((prev) => ({
-            ...prev,
-            [kp.publicKey]: sol.toFixed(4) + " SOL",
-          }));
-        } catch {
-          setBalances((prev) => ({ ...prev, [kp.publicKey]: "..." }));
-        }
-      });
-    } catch {}
+        keypairs.forEach(async (kp) => {
+          try {
+            const { sol } = await getBalance(kp.publicKey);
+            setBalances((prev) => ({
+              ...prev,
+              [kp.publicKey]: sol.toFixed(4) + " SOL",
+            }));
+          } catch {
+            setBalances((prev) => ({ ...prev, [kp.publicKey]: "..." }));
+          }
+        });
+      } catch {}
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   // Refresh sessions every 5s
@@ -376,7 +373,11 @@ function Dashboard({ vault, agentStatus, onExit }: DashboardProps) {
 
   const handleInit = async () => {
     if (vaultExists()) {
-      addLog("wallet", "Vault already exists. Use `unlock` to access it.", "warn");
+      addLog(
+        "wallet",
+        "Vault already exists. Use `unlock` to access it.",
+        "warn",
+      );
       return;
     }
 
@@ -390,7 +391,11 @@ function Dashboard({ vault, agentStatus, onExit }: DashboardProps) {
     });
 
     const { mnemonic } = generateMnemonic(wordCount);
-    addLog("wallet", "⚠  Write down your seed phrase and store it safely.", "warn");
+    addLog(
+      "wallet",
+      "⚠  Write down your seed phrase and store it safely.",
+      "warn",
+    );
     addLog("wallet", mnemonic, "warn");
 
     const confirmed = await requestPrompt<boolean>({
@@ -626,9 +631,19 @@ function Dashboard({ vault, agentStatus, onExit }: DashboardProps) {
 
     // Navigation shortcuts — only when buffer is empty and not running
     if (!cmdBuffer && !cmdRunning) {
-      if (input === "1") { setView("dashboard"); return; }
-      if (input === "2") { setView("accounts"); return; }
-      if (input === "q") { onExit(); exit(); return; }
+      if (input === "1") {
+        setView("dashboard");
+        return;
+      }
+      if (input === "2") {
+        setView("accounts");
+        return;
+      }
+      if (input === "q") {
+        onExit();
+        exit();
+        return;
+      }
     }
 
     // Don't accept new command input while running
@@ -838,16 +853,15 @@ export function startInkUI(
     const [agentStatus, setAgentStatus] = useState<any[]>(getAgentStatus());
 
     useEffect(() => {
-      const interval = setInterval(() => setAgentStatus(getAgentStatus()), 2000);
+      const interval = setInterval(
+        () => setAgentStatus(getAgentStatus()),
+        2000,
+      );
       return () => clearInterval(interval);
     }, []);
 
     return (
-      <Dashboard
-        vault={vault}
-        agentStatus={agentStatus}
-        onExit={onExit}
-      />
+      <Dashboard vault={vault} agentStatus={agentStatus} onExit={onExit} />
     );
   }
 
