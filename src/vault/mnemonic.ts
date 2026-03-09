@@ -9,7 +9,7 @@
 
 import * as bip39 from "bip39";
 
-export type MnemonicStrength = 128 | 256; // 128 = 12 words, 256 = 24 words
+export type MnemonicStrength = 12 | 24; // 128 = 12 words, 256 = 24 words
 
 export interface MnemonicResult {
   mnemonic: string;
@@ -21,10 +21,10 @@ export interface MnemonicResult {
  * @param strength 128 for 12-word, 256 for 24-word (default: 128)
  */
 export function generateMnemonic(
-  strength: MnemonicStrength = 128,
+  strength: MnemonicStrength = 12,
 ): MnemonicResult {
-  const mnemonic = bip39.generateMnemonic(strength);
-  const wordCount = strength === 128 ? 12 : 24;
+  const mnemonic = bip39.generateMnemonic(strength == 12 ? 128 : 256);
+  const wordCount = strength;
   return { mnemonic, wordCount };
 }
 

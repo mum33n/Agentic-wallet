@@ -124,3 +124,10 @@ export async function choose<T extends string>(
     console.log(`Please enter a number between 1 and ${options.length}`);
   }
 }
+
+/**
+ * Prompt command from user
+ */
+export function prompt() {
+  return rl?.prompt();
+}

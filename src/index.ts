@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-// import "dotenv/config";
 import * as readline from "readline";
 import chalk from "chalk";
 import { vaultExists, loadVault } from "./vault/keystore";
@@ -13,6 +11,9 @@ import { startRepl } from "./cli/repl";
 import { setReadline, askPassword } from "./cli/prompts";
 import { cmdInit } from "./cli/commands";
 import type { HandlerOptions } from "./bridge/handler";
+import { config } from "dotenv";
+
+config();
 
 const WS_PORT = parseInt(process.env.WS_PORT ?? "3000");
 const WC_PROJECT_ID = process.env.WALLETCONNECT_PROJECT_ID ?? "";
@@ -34,6 +35,7 @@ setReadline(rl);
 
 async function main() {
   console.log(chalk.bold("\n⬡  Agentic Wallet\n"));
+  console.log("here");
 
   if (args[0] === "init") {
     await cmdInit();

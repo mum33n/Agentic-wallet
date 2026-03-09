@@ -57,8 +57,10 @@ export * from "./config";
  */
 export class WalletVault {
   private _keypairs: AccountKeypair[] = [];
+  private _seed: Buffer | null = null; // cached for agent account derivation
   private _config: WalletConfig | null = null;
   private _unlocked: boolean = false;
+  private _mnemonic: string | null = null;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -70,7 +72,7 @@ export class WalletVault {
   async init(
     password: string,
     options: {
-      strength?: 128 | 256;
+      strength?: 12 | 24;
       cluster?: ClusterType;
       walletConnectProjectId?: string;
       firstAccountName?: string;
@@ -82,7 +84,7 @@ export class WalletVault {
       );
     }
 
-    const { mnemonic } = generateMnemonic(options.strength ?? 128);
+    const { mnemonic } = generateMnemonic(options.strength ?? 12);
 
     const vaultData: VaultData = {
       mnemonic,
@@ -125,6 +127,8 @@ export class WalletVault {
     const config = loadConfig();
 
     const seed = await mnemonicToSeed(vaultData.mnemonic);
+    this._seed = seed;
+    this._mnemonic = vaultData.mnemonic;
     this._keypairs = deriveAccounts(seed, config.accountStore);
     this._config = config;
     this._unlocked = true;
@@ -156,11 +160,10 @@ export class WalletVault {
     saveConfig(config);
   }
 
-  /**
-   * Lock the wallet — wipe all keypairs from memory.
-   */
   lock(): void {
     this._keypairs = [];
+    this._mnemonic = null;
+    this._seed = null;
     this._config = null;
     this._unlocked = false;
   }
@@ -176,6 +179,29 @@ export class WalletVault {
     const keypair = this._keypairs.find((k) => k.index === active.index);
     if (!keypair) throw new Error("Active keypair not found in session.");
     return keypair;
+  }
+
+  /**
+   * Lock the wallet — wipe all keypairs from memory.
+   */
+  /**
+   * Returns the mnemonic — only available while unlocked.
+   * Used by agent_connect to derive new accounts on demand.
+   */
+
+  getMnemonic(): string {
+    if (!this._mnemonic) throw new Error("Wallet is locked");
+    return this._mnemonic;
+  }
+
+  /**
+   * Reload config and re-derive keypairs from seed.
+   * Call after adding new accounts so the vault picks them up.
+   */
+  async reload(): Promise<void> {
+    if (!this._seed) throw new Error("Wallet is locked");
+    this._config = loadConfig();
+    this._keypairs = deriveAccounts(this._seed, this._config.accountStore);
   }
 
   /**
@@ -302,5 +328,43 @@ export class WalletVault {
     if (!this._unlocked) {
       throw new Error("Wallet is locked. Run `wallet unlock` first.");
     }
+  }
+
+  /**
+   * Find an account by name or create it if it doesn't exist.
+   * Uses the cached seed — no password needed.
+   * This is the primary way agents acquire their account.
+   */
+  async findOrCreate(name: string): Promise<AccountKeypair> {
+    this.assertUnlocked();
+
+    // Return existing account with this name
+    const existing = this._keypairs.find((k) => k.name === name);
+    if (existing) return existing;
+
+    // Derive a new account at the next index
+    const nextIndex = this._config!.accountStore.accounts.length;
+    const { store, keypair } = addAccount(
+      this._config!.accountStore,
+      this._seed!,
+      name,
+    );
+
+    this._config!.accountStore = store;
+    this._keypairs.push(keypair);
+    updateAccountStore(store);
+
+    console.log(
+      `[Vault] Created account "${name}" at index ${nextIndex} (${keypair.publicKey})`,
+    );
+    return keypair;
+  }
+
+  /**
+   * Find an account by name. Returns null if not found.
+   */
+  findByName(name: string): AccountKeypair | null {
+    this.assertUnlocked();
+    return this._keypairs.find((k) => k.name === name) ?? null;
   }
 }

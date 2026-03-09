@@ -57,10 +57,10 @@ export async function cmdInit(): Promise<void> {
       name: "wordCount",
       message: "Mnemonic length:",
       choices: [
-        { name: "12 words (standard)", value: 128 },
-        { name: "24 words (extra secure)", value: 256 },
+        { name: "12 words (standard)", value: 12 },
+        { name: "24 words (extra secure)", value: 24 },
       ],
-      default: 128,
+      default: 12,
     },
   ]);
 
@@ -85,22 +85,26 @@ export async function cmdInit(): Promise<void> {
     return;
   }
 
-  const { password } = await inquirer.prompt([
-    {
-      type: "password",
-      name: "password",
-      message: "Set vault password:",
-      mask: "*",
-    },
-  ]);
-  const { confirm } = await inquirer.prompt([
-    {
-      type: "password",
-      name: "confirm",
-      message: "Confirm password:",
-      mask: "*",
-    },
-  ]);
+  //   const  password  = await inquirer.prompt([
+  //     {
+  //       type: "password",
+  //       name: "password",
+  //       message: "Set vault password:",
+  //       mask: "*",
+  //     },
+  //   ]);
+
+  const password = await askPassword("Set vault password:");
+  //   const { confirm } = await inquirer.prompt([
+  //     {
+  //       type: "password",
+  //       name: "confirm",
+  //       message: "Confirm password:",
+  //       mask: "*",
+  //     },
+  //   ]);
+
+  const confirm = await askPassword("Confirm password:");
 
   if (password !== confirm) {
     console.log(chalk.red("Passwords do not match."));

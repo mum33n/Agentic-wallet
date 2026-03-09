@@ -14,6 +14,7 @@
 import fs from "fs";
 import { getConfigPath, ensureWalletDir } from "./keystore";
 import { AccountStore, createAccountStore } from "./accounts";
+import config from "../config";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -32,8 +33,12 @@ export interface WalletConfig {
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
 const RPC_URLS: Record<ClusterType, string> = {
-  "mainnet-beta": "https://api.mainnet-beta.solana.com",
-  devnet: "https://api.devnet.solana.com",
+  "mainnet-beta": config.heliusKey
+    ? `https://mainnet.helius-rpc.com/?api-key=${config.heliusKey}`
+    : "https://api.mainnet-beta.solana.com",
+  devnet: config.heliusKey
+    ? `https://devnet.helius-rpc.com/?api-key=${config.heliusKey}`
+    : "https://api.devnet.solana.com",
   testnet: "https://api.testnet.solana.com",
   localnet: "http://localhost:8899",
 };
