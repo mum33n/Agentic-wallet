@@ -336,6 +336,103 @@ server.tool(
   },
 );
 
+// ── Tool: send_token ──────────────────────────────────────────────────────────
+
+server.tool(
+  "send_token",
+  "Send SPL tokens from the active wallet account to any address. Handles associated token accounts automatically.",
+  {
+    to_address: z.string().describe("Recipient Solana address (base58)"),
+    mint_address: z.string().describe("SPL token mint address (base58)"),
+    amount: z.number().positive().describe("Token amount to send (in token units, not lamports)"),
+    account_name: z.string().optional().describe("Sender account name — defaults to the active account"),
+  },
+  async ({ to_address, mint_address, amount, account_name }) => {
+    const {
+      getOrCreateAssociatedTokenAccount,
+      createTransferInstruction,
+      getMint,
+    } = await import("@solana/spl-token");
+
+    const config = loadConfig();
+
+    // Resolve sender account
+    let senderEntry = account_name
+      ? config.accountStore.accounts.find(
+          (a) => a.name.toLowerCase() === account_name.toLowerCase(),
+        )
+      : config.accountStore.accounts.find(
+          (a) => a.index === config.accountStore.activeIndex,
+        );
+
+    if (!senderEntry) {
+      return {
+        content: [{ type: "text", text: "Sender account not found. Use list_accounts to see available accounts." }],
+      };
+    }
+
+    const wallet = await getWallet(senderEntry.name);
+    const connection = wallet.getConnection();
+    const mintPubkey = new PublicKey(mint_address);
+    const toPubkey = new PublicKey(to_address);
+
+    // Fetch mint decimals
+    const mintInfo = await getMint(connection, mintPubkey);
+    const rawAmount = BigInt(Math.floor(amount * 10 ** mintInfo.decimals));
+
+    // Get or create sender ATA
+    const fromAta = await getOrCreateAssociatedTokenAccount(
+      connection,
+      // payer — use the AgentWallet's keypair via a thin shim
+      { publicKey: wallet.solanaPublicKey, secretKey: (wallet as any).keypair?.secretKey } as any,
+      mintPubkey,
+      wallet.solanaPublicKey,
+    );
+
+    // Get or create recipient ATA
+    const toAta = await getOrCreateAssociatedTokenAccount(
+      connection,
+      { publicKey: wallet.solanaPublicKey, secretKey: (wallet as any).keypair?.secretKey } as any,
+      mintPubkey,
+      toPubkey,
+    );
+
+    const { blockhash, lastValidBlockHeight } =
+      await connection.getLatestBlockhash("confirmed");
+
+    const tx = new Transaction({
+      recentBlockhash: blockhash,
+      feePayer: wallet.solanaPublicKey,
+    }).add(
+      createTransferInstruction(
+        fromAta.address,
+        toAta.address,
+        wallet.solanaPublicKey,
+        rawAmount,
+      ),
+    );
+
+    const result = await wallet.signAndSendTransaction(tx, "devnet", true);
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: [
+            `Token transfer complete.`,
+            `From     : ${senderEntry.name} (${wallet.publicKey})`,
+            `To       : ${to_address}`,
+            `Mint     : ${mint_address}`,
+            `Amount   : ${amount} (decimals: ${mintInfo.decimals})`,
+            `Signature: ${result.signature}`,
+            `Explorer : ${result.explorerUrl}`,
+          ].join("\n"),
+        },
+      ],
+    };
+  },
+);
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function main() {
