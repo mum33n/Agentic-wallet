@@ -1,4 +1,5 @@
-import SignClient from "@walletconnect/sign-client";
+import SignClientPkg from "@walletconnect/sign-client";
+const SignClient = (SignClientPkg as any).default ?? SignClientPkg;
 import { getSdkError } from "@walletconnect/utils";
 
 import chalk from "chalk";
@@ -165,7 +166,10 @@ export async function pairWithDapp(uri: string): Promise<void> {
       signClient!.off("session_proposal", onProposal);
       const meta = params.proposer.metadata;
       console.log(
-        chalk.cyan(`[WC] Request from: ${chalk.bold(meta.name)} (${meta.url})`),
+        chalk.cyan(
+          `[WC] Request from: ${chalk.bold(meta.name)} (${meta.url})`,
+          params,
+        ),
       );
       resolve();
     };

@@ -6,6 +6,13 @@ Existing Solana wallets are built for humans — they require clicks, popups, an
 
 ---
 
+## Demo
+
+- [Watch the demo](https://drive.google.com/file/d/1yW9gADqz5iEkl94zw05CwIIFfHkUIE_y/view?usp=drive_link)
+- [Tweet](https://x.com/0xMumin_/status/2031141640358768826?s=20)
+
+---
+
 ## The problem
 
 Every existing wallet assumes a human is present:
