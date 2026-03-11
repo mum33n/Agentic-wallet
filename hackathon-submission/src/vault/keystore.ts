@@ -48,6 +48,7 @@ const CIPHER = "aes-256-gcm";
 // ── Vault Path ────────────────────────────────────────────────────────────────
 
 export function getWalletDir(): string {
+  // return path.join(__dirname, ".wallet");
   return path.join(os.homedir(), ".wallet");
 }
 
