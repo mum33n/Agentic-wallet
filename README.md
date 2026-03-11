@@ -41,6 +41,12 @@ If the daemon is running, the agent connects to it over WebSocket and the daemon
 
 ---
 
+## Wallet Flow
+
+![Wallet Flow](src/flow.png)
+
+---
+
 ## Architecture
 
 ```
