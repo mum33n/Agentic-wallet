@@ -337,3 +337,5 @@ export async function handleRequest(
   const handler = new WalletRequestHandler(options.vault);
   return handler.handle(request);
 }
+
+export * from "./walletConnect";
