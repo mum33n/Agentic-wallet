@@ -3,12 +3,14 @@ import { config } from "dotenv";
 
 import { Command } from "commander";
 import { startDaemon } from "./commands/startDaemon";
+import { startMCP } from "./servers/mcp";
 
 config();
 
 const program = new Command();
 
 program.command("init").action(startDaemon);
+program.command("mcp").action(startMCP);
 
 program.parse();
 
