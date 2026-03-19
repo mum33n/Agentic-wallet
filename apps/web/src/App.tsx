@@ -23,7 +23,7 @@ const Logo = ({ size = 28 }) => (
 type TokenType = 'kw' | 'fn' | 'str' | 'cm' | 'num' | 'tx';
 
 const TABS = [
-  '@execra/wallet · SDK',
+  '@execra/sdk · SDK',
   'WebSocket · Any language',
   'MCP · Claude AI',
 ];
@@ -35,7 +35,7 @@ const CODE: { lang: string; code: { t: TokenType; v: string }[] }[] = [
       { t: 'kw', v: 'import' },
       { t: 'tx', v: ' { AgentWallet } ' },
       { t: 'kw', v: 'from' },
-      { t: 'str', v: " '@execra/wallet'\n\n" },
+      { t: 'str', v: " '@execra/sdk'\n\n" },
       { t: 'cm', v: '// Finds or creates account by name\n' },
       { t: 'kw', v: 'const ' },
       { t: 'tx', v: 'wallet = ' },
@@ -206,7 +206,7 @@ const PACKAGES = [
   {
     name: 'wallet',
     desc: 'AgentWallet SDK. Connect, sign, send, simulate. Works standalone or with the daemon.',
-    cmd: 'npm install @execra/wallet',
+    cmd: 'npm install @execra/sdk',
   },
   {
     name: 'mcp',
@@ -253,7 +253,13 @@ function useReveal() {
   return [ref, visible] as const;
 }
 
-function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+function Reveal({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
   const [ref, visible] = useReveal();
   return (
     <div
@@ -477,7 +483,7 @@ export default function App() {
             npm
           </div>
           <div className="px-5 py-3.5 font-mono text-sm text-slate-200">
-            install <span style={{ color: '#4D9DFF' }}>@execra/wallet</span>
+            install <span style={{ color: '#4D9DFF' }}>@execra/sdk</span>
           </div>
         </div>
       </section>
