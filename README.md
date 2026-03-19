@@ -1,159 +1,162 @@
-# Turborepo starter
+# Execra
 
-This Turborepo starter is maintained by the Turborepo core team.
+Existing Solana wallets are built for humans — they require clicks, popups, and approval flows. Autonomous AI agents can't do any of that.
 
-## Using this example
+**Execra** is a Solana wallet daemon built specifically for agents. An AI can spin up a named wallet account, sign transactions, and interact with any Solana dApp — all without human intervention, browser popups, or storing a private key in plaintext.
 
-Run the following command:
+---
 
-```sh
-npx create-turbo@latest
+## Demo
+
+- [Watch the demo](https://drive.google.com/file/d/1yW9gADqz5iEkl94zw05CwIIFfHkUIE_y/view?usp=drive_link)
+- [Tweet](https://x.com/0xMumin_/status/2031141640358768826?s=20)
+
+---
+
+## The problem
+
+Every existing wallet assumes a human is present:
+- Browser wallets pop up a confirmation dialog
+- CLI wallets require a password prompt
+- Custodial wallets store your keys on someone else's server
+
+AI agents running autonomously have none of these options. They need a wallet that thinks the same way they do — name-based, programmatic, and always available.
+
+---
+
+## How it works
+
+An agent connects with a name. That's it.
+
+```typescript
+import { AgentWallet } from "@execra/sdk";
+
+const wallet = await AgentWallet.connect("Trading Bot");
+
+const balance = await wallet.getBalance();
+const { signature } = await wallet.signAndSendTransaction(tx);
 ```
 
-## What's inside?
+If `"Trading Bot"` doesn't exist yet, a new BIP-44 derived account is created and persisted automatically. No password prompt. No browser popup. No private key in a config file.
 
-This Turborepo includes the following packages/apps:
+If the daemon is running, the agent connects to it over WebSocket and the daemon handles signing. If not, it reads directly from the encrypted vault using the `WALLET_PASSWORD` env var. Either way, the agent's code doesn't change.
 
-### Apps and Packages
+---
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## Architecture
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```
+┌────────────────────────────────────────────────────────────┐
+│                    Execra Daemon                           │
+│                                                            │
+│   CLI Dashboard (Ink/React) ── live account + agent view   │
+│                                                            │
+│   ┌──────────────┐  ┌─────────────┐  ┌───────────────┐     │
+│   │  /ws/agent   │  │  /ws/dapp   │  │  MCP Server   │     │
+│   │  Agent SDK   │  │  Chrome Ext │  │  Claude AI    │     │
+│   └──────┬───────┘  └──────┬──────┘  └──────┬────────┘     │
+│          └─────────────────┴────────────────┘              │
+│                      Request Handler                       │
+│               simulate → sign → broadcast                  │
+│                                                            │
+│                  AES-256-GCM Vault                         │
+│              (mnemonic only, never private keys)           │
+└────────────────────────────────────────────────────────────┘
+         │                              │
+   Solana RPC                    WalletConnect v2
+  (Helius / public)            (any browser dApp)
 ```
 
-Without global `turbo`, use your package manager:
+Every request — from any surface — flows through the same pipeline: simulate the transaction first, reject if it would fail, then sign. No request bypasses simulation.
 
-```sh
-cd my-turborepo
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+---
+
+## Monorepo structure
+
+```
+execra/
+├── packages/
+│   ├── core/          # vault, HD derivation, Solana RPC, transaction pipeline
+│   ├── sdk/           # @execra/sdk — AgentWallet class for Node.js agents
+│   ├── mcp/           # @execra/mcp — MCP server for Claude Desktop / Code
+│   └── cli/           # @execra/daemon — daemon + CLI dashboard (execra binary)
+└── apps/
+    ├── web/           # Landing page
+    └── extension/     # Chrome extension (Manifest V3, window.solana)
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Integration surfaces
 
-```sh
-turbo build --filter=docs
+| | AgentWallet SDK | WebSocket | MCP Server | Chrome Extension |
+|---|---|---|---|---|
+| **Package** | `@execra/sdk` | — | `@execra/mcp` | `apps/extension` |
+| **Language** | TypeScript | Any | Claude AI | Browser |
+| **Daemon needed** | No | Yes | No | Yes |
+| **Best for** | Node.js agents | Python / Rust bots | Claude Desktop / Code | Agents controlling a browser |
+| **Auth** | Vault password or daemon | Daemon | `WALLET_PASSWORD` env var | Daemon |
+
+---
+
+## Features
+
+- **Named accounts** — agents connect by name, keypairs auto-derived from the vault seed
+- **HD wallet** — BIP-39 mnemonic + BIP-44 derivation, same standard as Phantom, Backpack, Solflare
+- **Transaction simulation** — every sign-and-send is simulated first; bad transactions are rejected before signing
+- **MCP server** — Claude can list accounts, check balances, transfer SOL, send tokens, sign messages, and simulate transactions via natural language
+- **Chrome extension** — Manifest V3 extension registers `window.solana` so any dApp works without installing a separate wallet
+- **WalletConnect v2** — pair with browser dApps directly from the CLI dashboard
+- **AES-256-GCM vault** — private keys never touch disk, mnemonic encrypted with PBKDF2-SHA512 (210,000 iterations)
+
+---
+
+## Quick start
+
+```bash
+pnpm install
+pnpm build
+
+# Start the daemon + CLI dashboard
+pnpm dev
 ```
 
-Without global `turbo`:
+Set `WALLET_PASSWORD` in `.env` to skip the unlock prompt on startup.
 
-```sh
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+See [SKILLS.md](SKILLS.md) for the full reference — CLI commands, MCP tools, WebSocket protocol, AgentWallet SDK API, and Chrome extension setup.
+
+---
+
+## Roadmap
+
+### 1. Globally installable CLI
+
+```bash
+npm install -g @execra/daemon
+execra init
 ```
 
-### Develop
+Publish `@execra/daemon` as an npm package. All dashboard commands exposed as subcommands. Pre-built zero-dependency binaries via `bun build --compile`.
 
-To develop all apps and packages, run the following command:
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+### 2. Standalone MCP package
 
-```sh
-cd my-turborepo
-turbo dev
+```bash
+npm install -g @execra/mcp
 ```
 
-Without global `turbo`, use your package manager:
+Publish `@execra/mcp` to npm so anyone can add it to Claude Desktop or Claude Code without cloning the repo.
 
-```sh
-cd my-turborepo
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+---
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### 3. Full wallet UI
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+Expand the Chrome extension popup and CLI dashboard into a complete wallet interface:
 
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- SPL token portfolio with names, logos, and USD values
+- Human-readable transaction history (swap, transfer, NFT mint, etc.)
+- NFT display and transfers
+- Open DeFi positions (liquidity, staking, lending) and claimable rewards
+- Connected dApps manager with session revocation
+- Custom RPC, preferred explorer, auto-lock timeout
