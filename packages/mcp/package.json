@@ -1,5 +1,5 @@
 {
-  "name": "agentic-wallet-mcp",
+  "name": "@execra/mcp",
   "version": "1.0.0",
   "description": "MCP server for Agentic Wallet — use with Claude Desktop or any MCP client",
   "type": "module",
