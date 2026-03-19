@@ -25,19 +25,17 @@
  *   "Sign this message to prove I own the account"
  */
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 import {
   Transaction,
   SystemProgram,
   PublicKey,
   LAMPORTS_PER_SOL,
-} from "@solana/web3.js";
-// import { AgentWallet } from "sdk";
-import { loadConfig } from "core";
-import { AgentWallet } from "sdk";
-// import { AgentWallet } from "./wallet/index.js";
+} from '@solana/web3.js';
+import { loadConfig } from 'core';
+import { AgentWallet } from '@execra/sdk';
 
 // ── Wallet cache — reuse connections across tool calls ────────────────────────
 
@@ -55,15 +53,15 @@ async function getWallet(accountName: string): Promise<AgentWallet> {
 // ── Server ────────────────────────────────────────────────────────────────────
 
 const server = new McpServer({
-  name: "agentic-wallet",
-  version: "1.0.0",
+  name: 'agentic-wallet',
+  version: '1.0.0',
 });
 
 // ── Tool: list_accounts ───────────────────────────────────────────────────────
 
 server.tool(
-  "list_accounts",
-  "List all accounts in the wallet with their addresses and indices.",
+  'list_accounts',
+  'List all accounts in the wallet with their addresses and indices.',
   {},
   async () => {
     const config = loadConfig();
@@ -73,8 +71,8 @@ server.tool(
       return {
         content: [
           {
-            type: "text",
-            text: "No accounts found. Use create_account to create one.",
+            type: 'text',
+            text: 'No accounts found. Use create_account to create one.',
           },
         ],
       };
@@ -82,12 +80,12 @@ server.tool(
 
     const lines = accounts.map((a) => {
       const active =
-        a.index === config.accountStore.activeIndex ? " (active)" : "";
+        a.index === config.accountStore.activeIndex ? ' (active)' : '';
       return `[${a.index}] ${a.name}${active}\n    Address: ${a.publicKey}`;
     });
 
     return {
-      content: [{ type: "text", text: `Accounts:\n\n${lines.join("\n\n")}` }],
+      content: [{ type: 'text', text: `Accounts:\n\n${lines.join('\n\n')}` }],
     };
   },
 );
@@ -95,8 +93,8 @@ server.tool(
 // ── Tool: get_balance ─────────────────────────────────────────────────────────
 
 server.tool(
-  "get_balance",
-  "Get the SOL balance of a named wallet account.",
+  'get_balance',
+  'Get the SOL balance of a named wallet account.',
   {
     account_name: z.string().describe('Name of the account e.g. "Trading Bot"'),
   },
@@ -107,7 +105,7 @@ server.tool(
     return {
       content: [
         {
-          type: "text",
+          type: 'text',
           text: `${account_name} (${wallet.publicKey})\nBalance: ${balance.toFixed(6)} SOL`,
         },
       ],
@@ -118,8 +116,8 @@ server.tool(
 // ── Tool: create_account ──────────────────────────────────────────────────────
 
 server.tool(
-  "create_account",
-  "Create a new named wallet account derived from the vault seed.",
+  'create_account',
+  'Create a new named wallet account derived from the vault seed.',
   {
     account_name: z
       .string()
@@ -130,7 +128,7 @@ server.tool(
     return {
       content: [
         {
-          type: "text",
+          type: 'text',
           text: `Account ready: "${account_name}"\nAddress: ${wallet.publicKey}\nIndex: ${wallet.accountIndex}`,
         },
       ],
@@ -141,16 +139,16 @@ server.tool(
 // ── Tool: request_airdrop ─────────────────────────────────────────────────────
 
 server.tool(
-  "request_airdrop",
-  "Request a devnet SOL airdrop for an account. Max 2 SOL per request.",
+  'request_airdrop',
+  'Request a devnet SOL airdrop for an account. Max 2 SOL per request.',
   {
-    account_name: z.string().describe("Name of the account to airdrop to"),
+    account_name: z.string().describe('Name of the account to airdrop to'),
     amount_sol: z
       .number()
       .min(0.1)
       .max(2)
       .default(1)
-      .describe("Amount of SOL to airdrop"),
+      .describe('Amount of SOL to airdrop'),
   },
   async ({ account_name, amount_sol }) => {
     const wallet = await getWallet(account_name);
@@ -158,7 +156,7 @@ server.tool(
     return {
       content: [
         {
-          type: "text",
+          type: 'text',
           text: `Airdrop of ${amount_sol} SOL sent to ${account_name}.\nSignature: ${sig}`,
         },
       ],
@@ -169,16 +167,16 @@ server.tool(
 // ── Tool: transfer_sol ────────────────────────────────────────────────────────
 
 server.tool(
-  "transfer_sol",
-  "Transfer SOL from one named account to another address. Simulates before sending.",
+  'transfer_sol',
+  'Transfer SOL from one named account to another address. Simulates before sending.',
   {
-    from_account: z.string().describe("Name of the sending account"),
-    to_address: z.string().describe("Recipient Solana address (base58)"),
-    amount_sol: z.number().positive().describe("Amount of SOL to send"),
+    from_account: z.string().describe('Name of the sending account'),
+    to_address: z.string().describe('Recipient Solana address (base58)'),
+    amount_sol: z.number().positive().describe('Amount of SOL to send'),
     skip_simulation: z
       .boolean()
       .default(false)
-      .describe("Skip simulation (not recommended)"),
+      .describe('Skip simulation (not recommended)'),
   },
   async ({ from_account, to_address, amount_sol, skip_simulation }) => {
     const wallet = await getWallet(from_account);
@@ -188,7 +186,7 @@ server.tool(
       return {
         content: [
           {
-            type: "text",
+            type: 'text',
             text: `Insufficient balance. ${from_account} has ${balance.toFixed(4)} SOL, need ${amount_sol + 0.001} SOL (including fees).`,
           },
         ],
@@ -210,14 +208,14 @@ server.tool(
 
     const result = await wallet.signAndSendTransaction(
       tx,
-      "devnet",
+      'devnet',
       skip_simulation,
     );
 
     return {
       content: [
         {
-          type: "text",
+          type: 'text',
           text: [
             `Transfer complete.`,
             `From    : ${from_account} (${wallet.publicKey})`,
@@ -225,7 +223,7 @@ server.tool(
             `Amount  : ${amount_sol} SOL`,
             `Signature: ${result.signature}`,
             `Explorer: ${result.explorerUrl}`,
-          ].join("\n"),
+          ].join('\n'),
         },
       ],
     };
@@ -235,44 +233,44 @@ server.tool(
 // ── Tool: simulate_transaction ────────────────────────────────────────────────
 
 server.tool(
-  "simulate_transaction",
-  "Simulate a base64-encoded transaction to preview its effects without signing or sending.",
+  'simulate_transaction',
+  'Simulate a base64-encoded transaction to preview its effects without signing or sending.',
   {
-    account_name: z.string().describe("Account that would sign"),
+    account_name: z.string().describe('Account that would sign'),
     transaction_b64: z
       .string()
-      .describe("Base64-encoded serialized transaction"),
+      .describe('Base64-encoded serialized transaction'),
   },
   async ({ account_name, transaction_b64 }) => {
     const wallet = await getWallet(account_name);
     const sim = await wallet.simulate(transaction_b64);
 
     const lines = [
-      `Simulation: ${sim.success ? "✓ would succeed" : "✗ would fail"}`,
+      `Simulation: ${sim.success ? '✓ would succeed' : '✗ would fail'}`,
     ];
     if (sim.error) lines.push(`Error   : ${sim.error}`);
     if (sim.computeUnitsConsumed)
       lines.push(`Compute : ${sim.computeUnitsConsumed} units`);
     if (sim.fee) lines.push(`Fee     : ${sim.fee} lamports`);
     if (sim.programIds.length)
-      lines.push(`Programs: ${sim.programIds.join(", ")}`);
+      lines.push(`Programs: ${sim.programIds.join(', ')}`);
     if (sim.logs.length) {
       lines.push(`\nLogs:`);
       sim.logs.slice(0, 10).forEach((l) => lines.push(`  ${l}`));
     }
 
-    return { content: [{ type: "text", text: lines.join("\n") }] };
+    return { content: [{ type: 'text', text: lines.join('\n') }] };
   },
 );
 
 // ── Tool: sign_message ────────────────────────────────────────────────────────
 
 server.tool(
-  "sign_message",
-  "Sign an arbitrary message with a named account to prove ownership.",
+  'sign_message',
+  'Sign an arbitrary message with a named account to prove ownership.',
   {
-    account_name: z.string().describe("Account to sign with"),
-    message: z.string().describe("Message to sign"),
+    account_name: z.string().describe('Account to sign with'),
+    message: z.string().describe('Message to sign'),
   },
   async ({ account_name, message }) => {
     const wallet = await getWallet(account_name);
@@ -281,13 +279,13 @@ server.tool(
     return {
       content: [
         {
-          type: "text",
+          type: 'text',
           text: [
             `Message signed.`,
             `Account  : ${account_name} (${wallet.publicKey})`,
             `Message  : ${message}`,
             `Signature: ${signature}`,
-          ].join("\n"),
+          ].join('\n'),
         },
       ],
     };
@@ -297,17 +295,17 @@ server.tool(
 // ── Tool: get_recent_transactions ─────────────────────────────────────────────
 
 server.tool(
-  "get_recent_transactions",
-  "Get recent transaction signatures for a named account.",
+  'get_recent_transactions',
+  'Get recent transaction signatures for a named account.',
   {
-    account_name: z.string().describe("Name of the account"),
+    account_name: z.string().describe('Name of the account'),
     limit: z
       .number()
       .int()
       .min(1)
       .max(20)
       .default(5)
-      .describe("Number of transactions"),
+      .describe('Number of transactions'),
   },
   async ({ account_name, limit }) => {
     const wallet = await getWallet(account_name);
@@ -316,7 +314,7 @@ server.tool(
     if (txs.length === 0) {
       return {
         content: [
-          { type: "text", text: `No transactions found for ${account_name}.` },
+          { type: 'text', text: `No transactions found for ${account_name}.` },
         ],
       };
     }
@@ -329,8 +327,8 @@ server.tool(
     return {
       content: [
         {
-          type: "text",
-          text: `Recent transactions for ${account_name}:\n\n${lines.join("\n\n")}`,
+          type: 'text',
+          text: `Recent transactions for ${account_name}:\n\n${lines.join('\n\n')}`,
         },
       ],
     };
@@ -340,26 +338,26 @@ server.tool(
 // ── Tool: send_token ──────────────────────────────────────────────────────────
 
 server.tool(
-  "send_token",
-  "Send SPL tokens from the active wallet account to any address. Handles associated token accounts automatically.",
+  'send_token',
+  'Send SPL tokens from the active wallet account to any address. Handles associated token accounts automatically.',
   {
-    to_address: z.string().describe("Recipient Solana address (base58)"),
-    mint_address: z.string().describe("SPL token mint address (base58)"),
+    to_address: z.string().describe('Recipient Solana address (base58)'),
+    mint_address: z.string().describe('SPL token mint address (base58)'),
     amount: z
       .number()
       .positive()
-      .describe("Token amount to send (in token units, not lamports)"),
+      .describe('Token amount to send (in token units, not lamports)'),
     account_name: z
       .string()
       .optional()
-      .describe("Sender account name — defaults to the active account"),
+      .describe('Sender account name — defaults to the active account'),
   },
   async ({ to_address, mint_address, amount, account_name }) => {
     const {
       getOrCreateAssociatedTokenAccount,
       createTransferInstruction,
       getMint,
-    } = await import("@solana/spl-token");
+    } = await import('@solana/spl-token');
 
     const config = loadConfig();
 
@@ -376,8 +374,8 @@ server.tool(
       return {
         content: [
           {
-            type: "text",
-            text: "Sender account not found. Use list_accounts to see available accounts.",
+            type: 'text',
+            text: 'Sender account not found. Use list_accounts to see available accounts.',
           },
         ],
       };
@@ -416,7 +414,7 @@ server.tool(
     );
 
     const { blockhash, lastValidBlockHeight } =
-      await connection.getLatestBlockhash("confirmed");
+      await connection.getLatestBlockhash('confirmed');
 
     const tx = new Transaction({
       recentBlockhash: blockhash,
@@ -430,12 +428,12 @@ server.tool(
       ),
     );
 
-    const result = await wallet.signAndSendTransaction(tx, "devnet", true);
+    const result = await wallet.signAndSendTransaction(tx, 'devnet', true);
 
     return {
       content: [
         {
-          type: "text",
+          type: 'text',
           text: [
             `Token transfer complete.`,
             `From     : ${senderEntry.name} (${wallet.publicKey})`,
@@ -444,7 +442,7 @@ server.tool(
             `Amount   : ${amount} (decimals: ${mintInfo.decimals})`,
             `Signature: ${result.signature}`,
             `Explorer : ${result.explorerUrl}`,
-          ].join("\n"),
+          ].join('\n'),
         },
       ],
     };
