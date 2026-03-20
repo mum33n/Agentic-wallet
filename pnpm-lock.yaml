@@ -90,9 +90,6 @@ importers:
       commander:
         specifier: ^14.0.3
         version: 14.0.3
-      core:
-        specifier: workspace:*
-        version: link:../core
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
@@ -103,15 +100,18 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@execra/core':
+        specifier: workspace:*
+        version: link:../core
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
-      tsc:
-        specifier: ^2.0.4
-        version: 2.0.4
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.8)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
 
   packages/core:
     dependencies:
@@ -176,9 +176,6 @@ importers:
       '@solana/web3.js':
         specifier: ^1.98.4
         version: 1.98.4(bufferutil@4.1.0)(typescript@5.9.2)
-      core:
-        specifier: workspace:*
-        version: link:../core
       ws:
         specifier: ^8.19.0
         version: 8.19.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
@@ -186,6 +183,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@execra/core':
+        specifier: workspace:*
+        version: link:../core
       '@types/node':
         specifier: ^25.4.0
         version: 25.4.0
@@ -201,13 +201,13 @@ importers:
       '@solana/web3.js':
         specifier: ^1.98.4
         version: 1.98.4(bufferutil@4.1.0)(typescript@5.9.2)
-      core:
-        specifier: workspace:*
-        version: link:../core
       ws:
         specifier: ^8.19.0
         version: 8.19.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     devDependencies:
+      '@execra/core':
+        specifier: workspace:*
+        version: link:../core
       '@types/node':
         specifier: ^25.4.0
         version: 25.4.0
@@ -2603,10 +2603,6 @@ packages:
 
   ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
-
-  tsc@2.0.4:
-    resolution: {integrity: sha512-fzoSieZI5KKJVBYGvwbVZs/J5za84f2lSTLPYf6AGiIf43tZ3GNrI1QzTLcjtyDDP4aLxd46RTZq1nQxe7+k5Q==}
-    hasBin: true
 
   tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
@@ -5603,8 +5599,6 @@ snapshots:
       typescript: 5.9.3
 
   ts-interface-checker@0.1.13: {}
-
-  tsc@2.0.4: {}
 
   tslib@1.14.1: {}
 

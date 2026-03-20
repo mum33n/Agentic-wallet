@@ -17,6 +17,7 @@ export default defineConfig({
   // dts: true,
   outExtension: () => ({ js: '.js' }),
   external: [
+    '@execra/core',
     '@solana/web3.js',
     'zod',
     '@modelcontextprotocol/sdk',

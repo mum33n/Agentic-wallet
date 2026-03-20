@@ -38,7 +38,7 @@ import {
   vaultExists,
   type AccountKeypair,
   type SimulationResult,
-} from "core";
+} from "@execra/core";
 // import { loadVault, vaultExists } from "../vault/keystore";
 // import { loadConfig, updateAccountStore } from "../vault/config";
 // import { mnemonicToSeed } from "../vault/mnemonic";

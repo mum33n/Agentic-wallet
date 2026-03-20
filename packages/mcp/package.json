@@ -1,12 +1,11 @@
 {
   "name": "@execra/mcp",
   "version": "1.0.0",
-  "description": "MCP server for Agentic Wallet — use with Claude Desktop or any MCP client",
+  "description": "Execra MCP server — use with Claude Desktop or any MCP client",
   "type": "module",
   "main": "dist/index.js",
   "files": [
-    "dist",
-    "bin"
+    "dist"
   ],
   "bin": {
     "execra-mcp": "dist/index.js"
@@ -16,16 +15,19 @@
     "start": "node dist/index.js",
     "prepublishOnly": "pnpm build"
   },
+  "keywords": ["solana", "wallet", "mcp", "claude", "agent", "execra", "model-context-protocol"],
+  "author": "Execra",
+  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
-    "core": "workspace:*",
     "@execra/sdk": "workspace:*",
     "ws": "^8.19.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@execra/core": "workspace:*",
     "@types/node": "^25.4.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.2"

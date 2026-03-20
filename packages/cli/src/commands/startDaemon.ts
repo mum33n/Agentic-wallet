@@ -11,7 +11,7 @@ import {
   vaultExists,
   WalletVault,
   initWalletConnect,
-} from "core";
+} from "@execra/core";
 import { startWebSocketServer } from "../servers/websocket";
 
 const WS_PORT = parseInt(process.env.WS_PORT ?? "3000");
