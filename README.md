@@ -1,8 +1,8 @@
-# Agentic Wallet
+# Execra
 
 Existing Solana wallets are built for humans — they require clicks, popups, and approval flows. Autonomous AI agents can't do any of that.
 
-**Agentic Wallet** is a Solana wallet daemon built specifically for agents. An AI can spin up a named wallet account, sign transactions, and interact with any Solana dApp — all without human intervention, browser popups, or storing a private key in plaintext.
+**Execra** is a Solana wallet daemon built specifically for agents. An AI can spin up a named wallet account, sign transactions, and interact with any Solana dApp — all without human intervention, browser popups, or storing a private key in plaintext.
 
 ---
 
@@ -29,6 +29,8 @@ AI agents running autonomously have none of these options. They need a wallet th
 An agent connects with a name. That's it.
 
 ```typescript
+import { AgentWallet } from "@execra/sdk";
+
 const wallet = await AgentWallet.connect("Trading Bot");
 
 const balance = await wallet.getBalance();
@@ -50,22 +52,22 @@ If the daemon is running, the agent connects to it over WebSocket and the daemon
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Wallet Daemon                         │
-│                                                          │
-│   CLI Dashboard (Ink/React) ── live account + agent view │
-│                                                          │
-│   ┌──────────────┐  ┌─────────────┐  ┌───────────────┐  │
-│   │  /ws/agent   │  │  /ws/dapp   │  │  MCP Server   │  │
-│   │  Agent SDK   │  │  Chrome Ext │  │  Claude AI    │  │
-│   └──────┬───────┘  └──────┬──────┘  └──────┬────────┘  │
-│          └─────────────────┴─────────────────┘           │
-│                      Request Handler                      │
-│               simulate → sign → broadcast                 │
-│                                                          │
-│                  AES-256-GCM Vault                        │
-│              (mnemonic only, never private keys)          │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                    Execra Daemon                           │
+│                                                            │
+│   CLI Dashboard (Ink/React) ── live account + agent view   │
+│                                                            │
+│   ┌──────────────┐  ┌─────────────┐  ┌───────────────┐     │
+│   │  /ws/agent   │  │  /ws/dapp   │  │  MCP Server   │     │
+│   │  Agent SDK   │  │  Chrome Ext │  │  Claude AI    │     │
+│   └──────┬───────┘  └──────┬──────┘  └──────┬────────┘     │
+│          └─────────────────┴────────────────┘              │
+│                      Request Handler                       │
+│               simulate → sign → broadcast                  │
+│                                                            │
+│                  AES-256-GCM Vault                         │
+│              (mnemonic only, never private keys)           │
+└────────────────────────────────────────────────────────────┘
          │                              │
    Solana RPC                    WalletConnect v2
   (Helius / public)            (any browser dApp)
@@ -75,14 +77,31 @@ Every request — from any surface — flows through the same pipeline: simulate
 
 ---
 
+## Monorepo structure
+
+```
+execra/
+├── packages/
+│   ├── core/          # vault, HD derivation, Solana RPC, transaction pipeline
+│   ├── sdk/           # @execra/sdk — AgentWallet class for Node.js agents
+│   ├── mcp/           # @execra/mcp — MCP server for Claude Desktop / Code
+│   └── cli/           # @execra/daemon — daemon + CLI dashboard (execra binary)
+└── apps/
+    ├── web/           # Landing page
+    └── extension/     # Chrome extension (Manifest V3, window.solana)
+```
+
+---
+
 ## Integration surfaces
 
 | | AgentWallet SDK | WebSocket | MCP Server | Chrome Extension |
 |---|---|---|---|---|
+| **Package** | `@execra/sdk` | — | `@execra/mcp` | `apps/extension` |
 | **Language** | TypeScript | Any | Claude AI | Browser |
-| **Daemon needed** | No | Yes | Yes | Yes |
+| **Daemon needed** | No | Yes | No | Yes |
 | **Best for** | Node.js agents | Python / Rust bots | Claude Desktop / Code | Agents controlling a browser |
-| **Auth** | Vault password or daemon | Daemon | Daemon | Daemon |
+| **Auth** | Vault password or daemon | Daemon | `WALLET_PASSWORD` env var | Daemon |
 
 ---
 
@@ -101,13 +120,16 @@ Every request — from any surface — flows through the same pipeline: simulate
 ## Quick start
 
 ```bash
-pnpm install && pnpm build
+pnpm install
+pnpm build
 
-pnpm start    # initializes vault on first run, starts daemon + CLI dashboard
-pnpm demo     # runs example autonomous agents (daemon must be running)
+# Start the daemon + CLI dashboard
+pnpm dev
 ```
 
-Set `WALLET_PASSWORD` in `.env` to skip the unlock prompt on startup. See [SKILL.md](SKILL.md) for the full reference — CLI commands, MCP tools, WebSocket protocol, AgentWallet API, and Chrome extension setup.
+Set `WALLET_PASSWORD` in `.env` to skip the unlock prompt on startup.
+
+See [SKILLS.md](SKILLS.md) for the full reference — CLI commands, MCP tools, WebSocket protocol, AgentWallet SDK API, and Chrome extension setup.
 
 ---
 
@@ -116,22 +138,21 @@ Set `WALLET_PASSWORD` in `.env` to skip the unlock prompt on startup. See [SKILL
 ### 1. Globally installable CLI
 
 ```bash
-npm install -g agentic-wallet
-agentic-wallet start
-agentic-wallet send <address> <sol>
+npm install -g @execra/daemon
+execra init
 ```
 
-Publish as an npm package. All dashboard commands exposed as subcommands. Pre-built zero-dependency binaries via `bun build --compile`.
+Publish `@execra/daemon` as an npm package. All dashboard commands exposed as subcommands. Pre-built zero-dependency binaries via `bun build --compile`.
 
 ---
 
-### 2. Importable SDK
+### 2. Standalone MCP package
 
 ```bash
-npm install agentic-wallet
+npm install -g @execra/mcp
 ```
 
-Separate `AgentWallet` into its own publishable package — TypeScript types included, ESM + CJS, no need to copy source files into your project.
+Publish `@execra/mcp` to npm so anyone can add it to Claude Desktop or Claude Code without cloning the repo.
 
 ---
 
