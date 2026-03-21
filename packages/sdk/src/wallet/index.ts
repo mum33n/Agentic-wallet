@@ -8,6 +8,8 @@
  *
  * Usage:
  *   const wallet = await AgentWallet.connect('Trading Bot')
+ *   const wallet = await AgentWallet.connect('Trading Bot', { cluster: 'mainnet-beta' })
+ *   const wallet = await AgentWallet.connect('Trading Bot', { cluster: 'https://my-rpc.com' })
  *
  *   const balance = await wallet.getBalance()
  *   const sig     = await wallet.signAndSendTransaction(tx)
@@ -23,12 +25,10 @@ import {
 } from "@solana/web3.js";
 import {
   deriveAccount,
-  getBalance,
-  getConnection,
+  getRpcUrl,
   loadConfig,
   loadVault,
   mnemonicToSeed,
-  requestAirdrop,
   signAllTransactions,
   signAndSendTransaction,
   signOffchainMessage,
@@ -39,20 +39,6 @@ import {
   type AccountKeypair,
   type SimulationResult,
 } from "@execra/core";
-// import { loadVault, vaultExists } from "../vault/keystore";
-// import { loadConfig, updateAccountStore } from "../vault/config";
-// import { mnemonicToSeed } from "../vault/mnemonic";
-// import { deriveAccount, AccountKeypair } from "../vault/accounts";
-// import { getConnection, getBalance, requestAirdrop } from "../solana/rpc";
-// import { simulateTransaction, SimulationResult } from "../solana/simulate";
-// import {
-//   signTransaction,
-//   signAllTransactions,
-//   signAndSendTransaction,
-//   signOffchainMessage,
-//   SignedTransaction,
-//   SendResult,
-// } from "../solana/tx";
 import WebSocket from "ws";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -60,6 +46,15 @@ import WebSocket from "ws";
 export interface AgentWalletOptions {
   /** Vault password. Falls back to WALLET_PASSWORD env var. */
   password?: string;
+  /**
+   * Solana cluster name or full custom RPC URL.
+   * Named clusters: "mainnet-beta" | "devnet" | "testnet" | "localnet"
+   * Custom RPC:     "https://mainnet.helius-rpc.com/?api-key=..."
+   * Falls back to the cluster saved in ~/.wallet/config.json.
+   */
+  cluster?: string;
+  /** Override the daemon WebSocket URL (default: ws://localhost:3000/ws/agent) */
+  daemonUrl?: string;
 }
 
 export interface TransactionResult {
@@ -75,6 +70,24 @@ type TxInput =
   | Uint8Array
   | string; // string = base64
 
+// ── Cluster helpers ───────────────────────────────────────────────────────────
+
+const CLUSTER_URLS: Record<string, string> = {
+  "mainnet-beta": "https://api.mainnet-beta.solana.com",
+  devnet: "https://api.devnet.solana.com",
+  testnet: "https://api.testnet.solana.com",
+  localnet: "http://localhost:8899",
+};
+
+/**
+ * Resolve a cluster name or raw URL to an RPC endpoint.
+ * Falls back to the URL stored in ~/.wallet/config.json.
+ */
+function resolveRpcUrl(cluster?: string): string {
+  if (!cluster) return getRpcUrl();
+  return CLUSTER_URLS[cluster] ?? cluster; // named cluster or treat as raw URL
+}
+
 // ── AgentWallet ───────────────────────────────────────────────────────────────
 
 export class AgentWallet {
@@ -88,13 +101,23 @@ export class AgentWallet {
   readonly accountIndex: number;
 
   private readonly keypair: AccountKeypair;
+  private readonly _connection: Connection;
+  private readonly _cluster: string;
 
-  private constructor(name: string, keypair: AccountKeypair, index: number) {
+  private constructor(
+    name: string,
+    keypair: AccountKeypair,
+    index: number,
+    connection: Connection,
+    cluster: string,
+  ) {
     this.name = name;
     this.publicKey = keypair.publicKey;
     this.solanaPublicKey = new PublicKey(keypair.publicKey);
     this.accountIndex = index;
     this.keypair = keypair;
+    this._connection = connection;
+    this._cluster = cluster;
   }
 
   // ── Factory ───────────────────────────────────────────────────────────────
@@ -104,24 +127,28 @@ export class AgentWallet {
    * If the account doesn't exist yet it is created automatically.
    *
    * @param accountName - Human-readable name e.g. "Trading Bot"
-   * @param opts        - Options including vault password
+   * @param opts        - Options: password, cluster, daemonUrl
    */
   static async connect(
     accountName: string,
     opts: AgentWalletOptions = {},
   ): Promise<AgentWallet> {
     const password = opts.password ?? process.env.WALLET_PASSWORD ?? "";
+    const daemonUrl = opts.daemonUrl ?? "ws://localhost:3000/ws/agent";
+    const rpcUrl = resolveRpcUrl(opts.cluster);
+    const cluster = opts.cluster ?? "devnet";
+    const connection = new Connection(rpcUrl, "confirmed");
 
     if (!password) {
       try {
         const keypair = await AgentWallet._fetchFromDaemon(
           accountName,
-          "ws://localhost:3000/ws/agent",
+          daemonUrl,
         );
         console.log(
           `[AgentWallet] Connected via daemon: "${accountName}" (${keypair.publicKey})`,
         );
-        return new AgentWallet(accountName, keypair, keypair.index);
+        return new AgentWallet(accountName, keypair, keypair.index, connection, cluster);
       } catch (err: any) {
         // Daemon not running or unreachable — fall through to password path
         const isDaemonDown =
@@ -182,7 +209,7 @@ export class AgentWallet {
 
     // Derive the keypair for this index
     const keypair = deriveAccount(seed, index, accountName);
-    return new AgentWallet(accountName, keypair, index);
+    return new AgentWallet(accountName, keypair, index, connection, cluster);
   }
 
   // ── Balance ───────────────────────────────────────────────────────────────
@@ -191,16 +218,15 @@ export class AgentWallet {
    * Get current SOL balance.
    */
   async getBalance(): Promise<number> {
-    const result = await getBalance(this.publicKey);
-    return result.sol;
+    const lamports = await this._connection.getBalance(this.solanaPublicKey);
+    return lamports / LAMPORTS_PER_SOL;
   }
 
   /**
    * Get current balance in lamports.
    */
   async getBalanceLamports(): Promise<number> {
-    const result = await getBalance(this.publicKey);
-    return result.lamports;
+    return this._connection.getBalance(this.solanaPublicKey);
   }
 
   // ── Airdrop ───────────────────────────────────────────────────────────────
@@ -210,7 +236,13 @@ export class AgentWallet {
    * Returns transaction signature.
    */
   async requestAirdrop(sol: number = 1): Promise<string> {
-    return requestAirdrop(this.publicKey, sol);
+    if (this._cluster === "mainnet-beta") {
+      throw new Error("Airdrops are not available on mainnet.");
+    }
+    const lamports = sol * LAMPORTS_PER_SOL;
+    const sig = await this._connection.requestAirdrop(this.solanaPublicKey, lamports);
+    await this._connection.confirmTransaction(sig, "confirmed");
+    return sig;
   }
 
   // ── Simulate ──────────────────────────────────────────────────────────────
@@ -221,7 +253,7 @@ export class AgentWallet {
    */
   async simulate(transaction: TxInput): Promise<SimulationResult> {
     const base64 = toBase64(transaction);
-    return simulateTransaction(base64, this.publicKey);
+    return simulateTransaction(base64, this.publicKey, this._connection);
   }
 
   // ── Sign only ─────────────────────────────────────────────────────────────
@@ -253,31 +285,32 @@ export class AgentWallet {
    * Simulates first — throws if simulation fails.
    * Returns signature, confirmation status, and explorer link.
    *
-   * @param transaction - Transaction, Buffer, Uint8Array, or base64 string
-   * @param cluster     - For the explorer link (default: devnet)
+   * @param transaction    - Transaction, Buffer, Uint8Array, or base64 string
    * @param skipSimulation - Skip pre-flight simulation (default: false)
    */
   async signAndSendTransaction(
     transaction: TxInput,
-    cluster: "devnet" | "mainnet-beta" | "testnet" = "devnet",
     skipSimulation: boolean = false,
   ): Promise<TransactionResult> {
     const base64 = toBase64(transaction);
 
     // Simulate before signing
     if (!skipSimulation) {
-      const sim = await simulateTransaction(base64, this.publicKey);
+      const sim = await simulateTransaction(base64, this.publicKey, this._connection);
       if (!sim.success) {
         throw new Error(`Transaction simulation failed: ${sim.error}`);
       }
     }
 
-    const result = await signAndSendTransaction(base64, this.keypair);
+    const result = await signAndSendTransaction(base64, this.keypair, {}, this._connection);
+
+    const explorerCluster =
+      this._cluster === "mainnet-beta" ? "" : `?cluster=${this._cluster}`;
 
     return {
       signature: result.txHash,
       confirmed: result.confirmed,
-      explorerUrl: `https://explorer.solana.com/tx/${result.txHash}?cluster=${cluster}`,
+      explorerUrl: `https://explorer.solana.com/tx/${result.txHash}${explorerCluster}`,
     };
   }
 
@@ -302,10 +335,10 @@ export class AgentWallet {
    * Get recent transaction signatures for this account.
    */
   async getRecentTransactions(limit = 10): Promise<string[]> {
-    const conn = getConnection();
-    const sigs = await conn.getSignaturesForAddress(this.solanaPublicKey, {
-      limit,
-    });
+    const sigs = await this._connection.getSignaturesForAddress(
+      this.solanaPublicKey,
+      { limit },
+    );
     return sigs.map((s) => s.signature);
   }
 
@@ -313,17 +346,16 @@ export class AgentWallet {
 
   /**
    * Get a fresh blockhash for building transactions.
-   * Convenience method so agents don't need to import getConnection().
    */
   async getLatestBlockhash() {
-    return getConnection().getLatestBlockhash();
+    return this._connection.getLatestBlockhash();
   }
 
   /**
    * Get the underlying Connection for advanced use.
    */
   getConnection(): Connection {
-    return getConnection();
+    return this._connection;
   }
 
   // ── Daemon fetch ────────────────────────────────────────────────────────────

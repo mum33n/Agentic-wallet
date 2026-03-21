@@ -12,6 +12,7 @@
  */
 
 import {
+  Connection,
   Transaction,
   VersionedTransaction,
   SendOptions,
@@ -93,9 +94,10 @@ export async function signAndSendTransaction(
   serializedTx: string,
   keypair: AccountKeypair,
   options: SendOptions = {},
+  conn?: Connection,
 ): Promise<SendResult> {
   const { serialized } = await signTransaction(serializedTx, keypair);
-  return sendSignedTransaction(serialized, options);
+  return sendSignedTransaction(serialized, options, conn);
 }
 
 /**
@@ -105,8 +107,9 @@ export async function signAndSendTransaction(
 export async function sendSignedTransaction(
   serializedSignedTx: string,
   options: SendOptions = {},
+  conn?: Connection,
 ): Promise<SendResult> {
-  const connection = getConnection();
+  const connection = conn ?? getConnection();
   const txBuffer = Buffer.from(serializedSignedTx, "base64");
 
   const sendOptions: SendOptions = {

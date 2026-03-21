@@ -72,7 +72,7 @@ export class WalletVault {
     password: string,
     options: {
       strength?: 12 | 24;
-      cluster?: ClusterType;
+      cluster?: Exclude<ClusterType, "custom">;
       walletConnectProjectId?: string;
       firstAccountName?: string;
     } = {},
@@ -139,7 +139,7 @@ export class WalletVault {
   async restore(
     mnemonic: string,
     password: string,
-    options: { cluster?: ClusterType } = {},
+    options: { cluster?: Exclude<ClusterType, "custom"> } = {},
   ): Promise<void> {
     if (!validateMnemonic(mnemonic)) {
       throw new Error("Invalid mnemonic phrase.");

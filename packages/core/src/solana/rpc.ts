@@ -6,13 +6,8 @@
  * Dependencies: @solana/web3.js
  */
 
-import {
-  Connection,
-  PublicKey,
-  LAMPORTS_PER_SOL,
-  clusterApiUrl,
-} from "@solana/web3.js";
-import { getRpcUrl, getCluster } from "../vault/config";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { getRpcUrl, getCluster } from '../vault/config';
 
 // Singleton connection
 
@@ -21,7 +16,7 @@ let _connection: Connection | null = null;
 export function getConnection(forceNew: boolean = false): Connection {
   if (!_connection || forceNew) {
     const rpcUrl = getRpcUrl();
-    _connection = new Connection(rpcUrl, "confirmed");
+    _connection = new Connection(rpcUrl, 'confirmed');
   }
   return _connection;
 }
@@ -59,8 +54,8 @@ export async function requestAirdrop(
   solAmount: number = 1,
 ): Promise<string> {
   const cluster = getCluster();
-  if (cluster === "mainnet-beta") {
-    throw new Error("Airdrops are not available on mainnet.");
+  if (cluster === 'mainnet-beta') {
+    throw new Error('Airdrops are not available on mainnet.');
   }
 
   const connection = getConnection();
@@ -68,7 +63,7 @@ export async function requestAirdrop(
   const lamports = solAmount * LAMPORTS_PER_SOL;
 
   const signature = await connection.requestAirdrop(pubkey, lamports);
-  await connection.confirmTransaction(signature, "confirmed");
+  await connection.confirmTransaction(signature, 'confirmed');
 
   return signature;
 }
@@ -81,7 +76,7 @@ export async function getLatestBlockhash(): Promise<{
   lastValidBlockHeight: number;
 }> {
   const connection = getConnection();
-  return connection.getLatestBlockhash("confirmed");
+  return connection.getLatestBlockhash('confirmed');
 }
 
 /**
@@ -97,7 +92,7 @@ export async function confirmTransaction(
 
   const result = await connection.confirmTransaction(
     { signature, blockhash, lastValidBlockHeight },
-    "confirmed",
+    'confirmed',
   );
 
   return !result.value.err;

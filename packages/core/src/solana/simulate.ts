@@ -55,8 +55,9 @@ export interface SimulationResult {
 export async function simulateTransaction(
   serializedTx: string,
   signerPublicKey: string,
+  conn?: Connection,
 ): Promise<SimulationResult> {
-  const connection = getConnection();
+  const connection = conn ?? getConnection();
 
   try {
     const txBuffer = Buffer.from(serializedTx, "base64");
