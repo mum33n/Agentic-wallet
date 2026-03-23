@@ -1,23 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import logo from './assets/logo.png';
 
 const Logo = ({ size = 28 }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-    <defs>
-      <linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#4D9DFF" />
-        <stop offset="100%" stopColor="#1A6EFF" />
-      </linearGradient>
-    </defs>
-    <path
-      d="M15 15 C15 15 15 85 15 85 Q15 88 18 88 L75 88 L75 72 L32 72 L32 58 L65 58 L65 42 L32 42 L32 28 L75 28 L75 12 L18 12 Q15 12 15 15Z"
-      fill="url(#lg)"
-    />
-    <path
-      d="M58 42 L82 50 L58 58 L64 52 L48 52 L48 48 L64 48Z"
-      fill="white"
-      opacity="0.95"
-    />
-  </svg>
+  <img
+    src={logo}
+    alt="logo"
+    className={`w-[${size}px] h-[${size}px]`}
+    width={size}
+  />
 );
 
 type TokenType = 'kw' | 'fn' | 'str' | 'cm' | 'num' | 'tx';
