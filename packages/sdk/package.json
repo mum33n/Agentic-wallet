@@ -1,6 +1,6 @@
 {
   "name": "@execra/sdk",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Execra SDK — AgentWallet client for autonomous agents on Solana",
   "main": "./dist/index.cjs",
   "type": "module",

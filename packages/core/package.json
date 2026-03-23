@@ -1,6 +1,6 @@
 {
   "name": "@execra/core",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Execra core — vault, HD key derivation, Solana RPC, and transaction pipeline",
   "main": "dist/index.js",
   "type": "module",
@@ -24,7 +24,15 @@
       "default": "./dist/handler/walletConnect.js"
     }
   },
-  "keywords": ["solana", "wallet", "crypto", "agent", "execra", "hd-wallet", "bip44"],
+  "keywords": [
+    "solana",
+    "wallet",
+    "crypto",
+    "agent",
+    "execra",
+    "hd-wallet",
+    "bip44"
+  ],
   "author": "Execra",
   "license": "MIT",
   "dependencies": {
