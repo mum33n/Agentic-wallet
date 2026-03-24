@@ -126,12 +126,12 @@ const CODE: { lang: string; code: { t: TokenType; v: string }[] }[] = [
       { t: 'tx', v: '      ' },
       { t: 'str', v: '"command"' },
       { t: 'tx', v: ': ' },
-      { t: 'str', v: '"node"' },
+      { t: 'str', v: '"npx"' },
       { t: 'tx', v: ',\n' },
       { t: 'tx', v: '      ' },
       { t: 'str', v: '"args"' },
       { t: 'tx', v: ': [' },
-      { t: 'str', v: '"dist/mcp-server.js"' },
+      { t: 'str', v: '"@execra/mcp"' },
       { t: 'tx', v: '],\n' },
       { t: 'tx', v: '      ' },
       { t: 'str', v: '"env"' },
@@ -317,7 +317,7 @@ export default function App() {
           ))}
         </div>
         <a
-          href="https://github.com"
+          href="https://github.com/mum33n/Agentic-wallet"
           className="hidden md:flex items-center gap-1.5 text-sm font-semibold text-white px-4 py-2 rounded-lg transition-all no-underline"
           style={{ background: '#1A6EFF' }}
           onMouseEnter={(e) => (e.currentTarget.style.background = '#4D9DFF')}
@@ -445,7 +445,7 @@ export default function App() {
             </svg>
           </a>
           <a
-            href="https://github.com"
+            href="https://github.com/mum33n/Agentic-wallet"
             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-medium text-slate-200 text-sm border border-white/10 no-underline transition-all"
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
@@ -897,6 +897,259 @@ export default function App() {
                 ))}
               </div>
             </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* EXTENSION */}
+      <section
+        id="extension"
+        className="relative z-10 border-t border-white/5 py-24 px-6"
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <Reveal>
+              <div
+                className="font-mono text-xs tracking-widest uppercase mb-4"
+                style={{ color: '#1A6EFF' }}
+              >
+                Chrome Extension
+              </div>
+              <h2 className="text-4xl font-black tracking-tight leading-tight mb-6">
+                window.solana for your agent
+              </h2>
+              <p
+                className="text-sm leading-relaxed mb-6"
+                style={{ color: '#5A6880' }}
+              >
+                The Execra extension registers{' '}
+                <span className="font-mono" style={{ color: '#E8EDF5' }}>
+                  window.solana
+                </span>{' '}
+                via Manifest V3 and connects directly to your local daemon. Any
+                dApp — Jupiter, Magic Eden, Tensor — works immediately without
+                Phantom or Backpack.
+              </p>
+              <div className="flex flex-col gap-3">
+                {[
+                  [
+                    'Manifest V3',
+                    'Built on the latest Chrome extension standard',
+                  ],
+                  [
+                    'Auto-approve mode',
+                    'Agents sign without popups when enabled',
+                  ],
+                  [
+                    'Bridges to daemon',
+                    'Routes through your local WebSocket server',
+                  ],
+                  [
+                    'Compatible with all dApps',
+                    'Drops in as a standard Solana wallet provider',
+                  ],
+                ].map(([title, desc], i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full mt-2 shrink-0"
+                      style={{ background: '#1A6EFF' }}
+                    />
+                    <div>
+                      <span
+                        className="text-sm font-semibold"
+                        style={{ color: '#E8EDF5' }}
+                      >
+                        {title}
+                      </span>
+                      <span className="text-sm" style={{ color: '#5A6880' }}>
+                        {' '}
+                        — {desc}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+
+            <Reveal delay={0.1}>
+              <div
+                className="rounded-2xl border border-white/8 overflow-hidden"
+                style={{ background: '#0B1220' }}
+              >
+                <div
+                  className="flex items-center gap-2 px-5 py-3.5 border-b border-white/8"
+                  style={{ background: '#080E1A' }}
+                >
+                  {['#FF5A5A', '#FFBD2E', '#27C93F'].map((c, i) => (
+                    <div
+                      key={i}
+                      className="w-3 h-3 rounded-full"
+                      style={{ background: c }}
+                    />
+                  ))}
+                  <span
+                    className="font-mono text-xs ml-2"
+                    style={{ color: '#3D5068' }}
+                  >
+                    chrome-extension://execra
+                  </span>
+                </div>
+                <div className="p-6 font-mono text-sm space-y-3">
+                  <div style={{ color: '#5A6880' }}>
+                    // dApp connects as usual
+                  </div>
+                  <div>
+                    <span style={{ color: '#4D9DFF' }}>const </span>
+                    <span style={{ color: '#E8EDF5' }}>provider = window.</span>
+                    <span style={{ color: '#4D9DFF' }}>solana</span>
+                  </div>
+                  <div>
+                    <span style={{ color: '#E8EDF5' }}>await provider.</span>
+                    <span style={{ color: '#FFD580' }}>connect</span>
+                    <span style={{ color: '#E8EDF5' }}>()</span>
+                  </div>
+                  <div className="pt-1" style={{ color: '#5A6880' }}>
+                    // routes to your daemon
+                  </div>
+                  <div>
+                    <span style={{ color: '#4D9DFF' }}>const </span>
+                    <span style={{ color: '#E8EDF5' }}>
+                      signed = await provider.
+                    </span>
+                    <span style={{ color: '#FFD580' }}>signTransaction</span>
+                    <span style={{ color: '#E8EDF5' }}>(tx)</span>
+                  </div>
+                  <div
+                    className="pt-1 text-xs px-3 py-2 rounded-lg border border-white/8"
+                    style={{ background: '#080E1A', color: '#27C93F' }}
+                  >
+                    ✓ signed by daemon · no popup
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ROADMAP */}
+      <section
+        id="roadmap"
+        className="relative z-10 border-t border-white/5 py-24 px-6"
+      >
+        <div className="max-w-5xl mx-auto">
+          <Reveal>
+            <div
+              className="font-mono text-xs tracking-widest uppercase mb-4"
+              style={{ color: '#1A6EFF' }}
+            >
+              Roadmap
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-12">
+              What's next
+            </h2>
+          </Reveal>
+          <div className="flex flex-col gap-px">
+            {[
+              {
+                done: true,
+                title: 'Globally installable CLI',
+                desc: '@execra/daemon published to npm. Start the daemon with execra init.',
+              },
+              {
+                done: true,
+                title: 'Standalone MCP package',
+                desc: '@execra/mcp published to npm. Add it to Claude Desktop or Claude Code without cloning the repo.',
+              },
+              {
+                done: false,
+                title: 'Bags API integration',
+                desc: 'MCP tools and SDK methods to create, mint, and manage SPL tokens via the Bags API. Agents can launch and manage tokens programmatically.',
+              },
+              {
+                done: false,
+                title: 'Solana Agent Kit extension',
+                desc: 'An Execra adapter for Solana Agent Kit so any agent using the kit can route signing through the daemon instead of managing raw keypairs.',
+              },
+              {
+                done: false,
+                title: 'AI agent platform integrations',
+                desc: 'Partnerships with browser-based agent platforms like Skyvern so agents controlling a browser can sign Solana transactions natively through the extension.',
+              },
+              {
+                done: false,
+                title: 'Full wallet UI',
+                desc: 'SPL token portfolio, transaction history, NFTs, open DeFi positions, connected dApps manager, and custom RPC settings.',
+              },
+            ].map((item, i, arr) => (
+              <Reveal key={i} delay={i * 0.05}>
+                <div
+                  className="flex items-start gap-5 px-6 py-5 border border-white/8 transition-all"
+                  style={{
+                    background: item.done ? 'rgba(26,110,255,0.04)' : '#0B1220',
+                    borderRadius:
+                      i === 0
+                        ? '12px 12px 0 0'
+                        : i === arr.length - 1
+                          ? '0 0 12px 12px'
+                          : '0',
+                    marginBottom: i < arr.length - 1 ? '-1px' : 0,
+                    opacity: item.done ? 0.7 : 1,
+                  }}
+                >
+                  <div
+                    className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5"
+                    style={{
+                      borderColor: item.done
+                        ? '#1A6EFF'
+                        : 'rgba(255,255,255,0.15)',
+                      background: item.done
+                        ? 'rgba(26,110,255,0.15)'
+                        : 'transparent',
+                    }}
+                  >
+                    {item.done && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path
+                          d="M1 4l3 3 5-6"
+                          stroke="#4D9DFF"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span
+                        className="font-semibold text-sm"
+                        style={{ color: item.done ? '#5A6880' : '#E8EDF5' }}
+                      >
+                        {item.title}
+                      </span>
+                      {item.done && (
+                        <span
+                          className="font-mono text-xs px-2 py-0.5 rounded-full"
+                          style={{
+                            background: 'rgba(26,110,255,0.12)',
+                            color: '#4D9DFF',
+                          }}
+                        >
+                          done
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className="text-sm leading-relaxed"
+                      style={{ color: '#3D5068' }}
+                    >
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
