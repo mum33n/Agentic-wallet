@@ -1,7 +1,7 @@
 {
-  "name": "@execra/deamon",
-  "version": "1.0.0",
-  "description": "Execra Agentic Wallet Daemon",
+  "name": "@execra/daemon",
+  "version": "2.0.0",
+  "description": "Execra daemon — Solana wallet daemon for autonomous agents",
   "main": "dist/index.js",
   "files": [
     "dist"
@@ -10,30 +10,37 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsup",
-    "dev": "node dist/index.js",
-    "prepublishOnly": "pnpm build"
+    "dev": "node dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "solana",
+    "wallet",
+    "daemon",
+    "agent",
+    "execra",
+    "cli",
+    "crypto"
+  ],
+  "author": "Execra",
+  "license": "MIT",
   "bin": {
     "execra": "dist/index.js"
   },
   "dependencies": {
+    "@execra/core": "workspace:*",
+    "@execra/sdk": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
-    "core": "workspace:*",
     "dotenv": "^17.3.1",
-    "@execra/sdk": "workspace:*",
     "ws": "^8.19.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/ws": "^8.18.1",
-    "tsc": "^2.0.4",
-    "tsup": "^8.5.1"
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.2"
   }
 }

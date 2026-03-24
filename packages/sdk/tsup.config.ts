@@ -8,5 +8,5 @@ export default defineConfig({
   clean: true,
   dts: true,
   minify: false,
-  external: ["@solana/web3.js", "core", "ws"],
+  external: ["@execra/core", "@solana/web3.js", "ws"],
 });

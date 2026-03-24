@@ -9,13 +9,13 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  dts: true,
+  dts: false,
   shims: true, // adds __dirname/__filename shims for ESM
   banner: {
     js: "#!/usr/bin/env node", // shebang on both entry points
   },
   // These are large native deps — don't bundle them, let node resolve them
-  external: ["@solana/web3.js", "ink", "ws", "chalk", "zod"],
+  external: ["@execra/core", "@execra/sdk", "@solana/web3.js", "@modelcontextprotocol/sdk", "@solana/spl-token", "ink", "react", "ws", "chalk", "zod"],
   esbuildOptions(options) {
     options.jsx = "transform";
     options.jsxFactory = "React.createElement";

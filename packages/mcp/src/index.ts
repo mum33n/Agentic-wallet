@@ -34,7 +34,7 @@ import {
   PublicKey,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
-import { loadConfig } from 'core';
+import { loadConfig } from '@execra/core';
 import { AgentWallet } from '@execra/sdk';
 
 // ── Wallet cache — reuse connections across tool calls ────────────────────────

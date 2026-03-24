@@ -1,12 +1,13 @@
 {
-  "name": "core",
-  "version": "1.0.0",
-  "description": "",
+  "name": "@execra/core",
+  "version": "2.0.0",
+  "description": "Execra core — vault, HD key derivation, Solana RPC, and transaction pipeline",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsup"
+    "build": "tsup",
+    "prepublishOnly": "pnpm build"
   },
   "files": [
     "dist"
@@ -18,14 +19,22 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./src/handler/walletConnect": {
-      "types": "./src/handler/walletConnect.ts",
+    "./handler/walletConnect": {
+      "types": "./dist/handler/walletConnect.d.ts",
       "default": "./dist/handler/walletConnect.js"
     }
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "solana",
+    "wallet",
+    "crypto",
+    "agent",
+    "execra",
+    "hd-wallet",
+    "bip44"
+  ],
+  "author": "Execra",
+  "license": "MIT",
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
     "@walletconnect/sign-client": "^2.23.8",

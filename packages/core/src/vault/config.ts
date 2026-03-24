@@ -16,7 +16,7 @@ import { AccountStore, createAccountStore } from "./accounts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type ClusterType = "mainnet-beta" | "devnet" | "testnet" | "localnet";
+export type ClusterType = "mainnet-beta" | "devnet" | "testnet" | "localnet" | "custom";
 
 export interface WalletConfig {
   version: number;
@@ -31,8 +31,10 @@ export interface WalletConfig {
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
-const RPC_URLS: Record<ClusterType, string> = {
-  "mainnet-beta": "https://api.mainnet-beta.solana.com",
+export const RPC_URLS: Record<Exclude<ClusterType, "custom">, string> = {
+  "mainnet-beta": HELIUS_API_KEY
+    ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`
+    : "https://api.mainnet-beta.solana.com",
   devnet: HELIUS_API_KEY
     ? `https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`
     : "https://api.devnet.solana.com",
@@ -69,7 +71,7 @@ export function saveConfig(config: WalletConfig): void {
  */
 export function createConfig(
   walletConnectProjectId: string = "",
-  cluster: ClusterType = "devnet", // default to devnet for development
+  cluster: Exclude<ClusterType, "custom"> = "devnet",
 ): WalletConfig {
   const now = new Date().toISOString();
   return {
@@ -85,7 +87,7 @@ export function createConfig(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-export function updateCluster(cluster: ClusterType): void {
+export function updateCluster(cluster: Exclude<ClusterType, "custom">): void {
   const config = loadConfig();
   config.cluster = cluster;
   config.rpcUrl = RPC_URLS[cluster];

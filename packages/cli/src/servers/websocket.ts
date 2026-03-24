@@ -12,7 +12,7 @@ import {
   handleRequest,
   WalletRequest,
   updateAccountStore,
-} from "core";
+} from "@execra/core";
 
 export interface WSServerOptions {
   port: number;

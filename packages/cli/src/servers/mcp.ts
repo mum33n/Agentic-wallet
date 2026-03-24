@@ -34,7 +34,7 @@ import {
   PublicKey,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
-import { loadConfig } from 'core';
+import { loadConfig } from '@execra/core';
 import { AgentWallet } from '@execra/sdk';
 
 // ── Wallet cache — reuse connections across tool calls ────────────────────────
@@ -206,11 +206,7 @@ server.tool(
       }),
     );
 
-    const result = await wallet.signAndSendTransaction(
-      tx,
-      'devnet',
-      skip_simulation,
-    );
+    const result = await wallet.signAndSendTransaction(tx, skip_simulation);
 
     return {
       content: [
@@ -428,7 +424,7 @@ server.tool(
       ),
     );
 
-    const result = await wallet.signAndSendTransaction(tx, 'devnet', true);
+    const result = await wallet.signAndSendTransaction(tx, true);
 
     return {
       content: [

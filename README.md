@@ -135,34 +135,20 @@ See [SKILLS.md](SKILLS.md) for the full reference — CLI commands, MCP tools, W
 
 ## Roadmap
 
-### 1. Globally installable CLI
+- [x] **Globally installable CLI** — `@execra/daemon` published to npm. All dashboard commands exposed as subcommands via `execra init`.
 
-```bash
-npm install -g @execra/daemon
-execra init
-```
+- [x] **Standalone MCP package** — `@execra/mcp` published to npm. Anyone can add it to Claude Desktop or Claude Code without cloning the repo.
 
-Publish `@execra/daemon` as an npm package. All dashboard commands exposed as subcommands. Pre-built zero-dependency binaries via `bun build --compile`.
+- [ ] **Bags API integration** — add MCP tools and SDK methods to create, mint, and manage SPL tokens via the Bags API. Agents can launch and manage tokens programmatically.
 
----
+- [ ] **Solana Agent Kit extension** — build an Execra adapter for Solana Agent Kit so any agent using the kit can route signing through the daemon instead of managing raw keypairs.
 
-### 2. Standalone MCP package
+- [ ] **AI agent platform integrations** — integration and partnership with browser-based AI agent platforms (Skyvern and others) so agents controlling a browser can sign Solana transactions natively through the extension.
 
-```bash
-npm install -g @execra/mcp
-```
-
-Publish `@execra/mcp` to npm so anyone can add it to Claude Desktop or Claude Code without cloning the repo.
-
----
-
-### 3. Full wallet UI
-
-Expand the Chrome extension popup and CLI dashboard into a complete wallet interface:
-
-- SPL token portfolio with names, logos, and USD values
-- Human-readable transaction history (swap, transfer, NFT mint, etc.)
-- NFT display and transfers
-- Open DeFi positions (liquidity, staking, lending) and claimable rewards
-- Connected dApps manager with session revocation
-- Custom RPC, preferred explorer, auto-lock timeout
+- [ ] **Full wallet UI** — expand the Chrome extension popup and CLI dashboard:
+  - SPL token portfolio with names, logos, and USD values
+  - Human-readable transaction history (swap, transfer, NFT mint, etc.)
+  - NFT display and transfers
+  - Open DeFi positions (liquidity, staking, lending) and claimable rewards
+  - Connected dApps manager with session revocation
+  - Custom RPC, preferred explorer, auto-lock timeout
