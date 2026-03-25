@@ -1163,7 +1163,7 @@ export default function App() {
           </span>
         </div>
         <div className="flex gap-6">
-          {['GitHub', 'Docs', 'npm', 'SKILLS.md'].map((l) => (
+          {['GitHub', 'Docs', 'npm', 'SKILLS.md', 'TG', 'X'].map((l) => (
             <a
               key={l}
               href="#"
